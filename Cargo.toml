@@ -1,0 +1,6 @@
+[workspace]
+members = [
+    "shared_core",
+    "server_app",
+    "client_app",
+]
