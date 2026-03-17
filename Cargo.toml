@@ -1,6 +1,7 @@
-[workspace]
-members = [
-    "shared_core",
-    "server_app",
-    "client_app",
-]
+[package]
+name = "lethal-nd"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+renet = "2.0.0"
