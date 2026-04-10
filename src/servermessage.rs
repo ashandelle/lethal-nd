@@ -1,4 +1,6 @@
-#[derive(Debug, Serialize, Deserialize)]
+use serde::{Deserialize, Serialize};
+
+#[derive(Serialize, Deserialize, Debug)]
 pub enum ReliableServerMessage {
     // CreatePlayer {
     //     entity: Entity,
