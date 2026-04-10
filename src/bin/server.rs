@@ -1,51 +1,63 @@
-use renet::{ConnectionConfig, DefaultChannel, RenetClient, RenetServer, ServerEvent};
-use renet_steam::{AccessPermission, SteamClientTransport, SteamServerConfig, SteamServerTransport};
-use steamworks::{Client, LobbyId, LobbyType, SteamId};
+use renet::{ClientId, ConnectionConfig, DefaultChannel, RenetServer, ServerEvent};
+use renet_netcode::{NetcodeServerTransport, ServerAuthentication, ServerConfig};
 
-use std::{thread, time::Duration};
+use std::{net::{IpAddr, Ipv4Addr, SocketAddr, UdpSocket}, time::{Duration, SystemTime}};
 
 fn main() {
-    // Setup steam client
-    let steam_client = Client::init_app(480).unwrap();
-    steam_client.networking_utils().init_relay_network_access();
+    let mut server = RenetServer::new(ConnectionConfig::default());
 
-    // Create renet server
-    let connection_config = ConnectionConfig::default();
-    let mut server: RenetServer = RenetServer::new(connection_config);
-
-    // Create steam transport
-    let access_permission = AccessPermission::Public;
-    let steam_transport_config = SteamServerConfig {
-        max_clients: 32,
-        access_permission,
+    // Setup transport layer using renet_netcode
+    const SERVER_ADDR: SocketAddr = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 5000);
+    let socket: UdpSocket = UdpSocket::bind(SERVER_ADDR).unwrap();
+    let server_config = ServerConfig {
+        current_time: SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap(),
+        max_clients: 64,
+        protocol_id: 0,
+        public_addresses: vec![SERVER_ADDR],
+        authentication: ServerAuthentication::Unsecure
     };
-    let mut steam_transport = SteamServerTransport::new(steam_client.clone(), steam_transport_config).unwrap();
+    let mut transport = NetcodeServerTransport::new(server_config, socket).unwrap();
 
     // Your gameplay loop
     loop {
         let delta_time = Duration::from_millis(16);
-
-        steam_client.run_callbacks(); // Update steam callbacks
-    
+        // Receive new messages and update clients
         server.update(delta_time);
-        steam_transport.update(&mut server);
-
-        // Handle connect/disconnect events
+        transport.update(delta_time, &mut server);
+        
+        // Check for client connections/disconnections
         while let Some(event) = server.get_event() {
             match event {
                 ServerEvent::ClientConnected { client_id } => {
-                    println!("Client {} connected.", client_id)
+                    println!("Client {client_id} connected");
                 }
                 ServerEvent::ClientDisconnected { client_id, reason } => {
-                    println!("Client {} disconnected: {}", client_id, reason);
+                    println!("Client {client_id} disconnected: {reason}");
                 }
             }
         }
 
-        // Code for sending/receiving messages can go here
-        // Check the examples/demos 
+        // Receive message from channel
+        for client_id in server.clients_id() {
+            // The enum DefaultChannel describe the channels used by the default configuration
+            while let Some(message) = server.receive_message(client_id, DefaultChannel::ReliableOrdered) {
+                // Handle received message
+            }
+        }
+        
+        // Send a text message for all clients
+        server.broadcast_message(DefaultChannel::ReliableOrdered, "server message");
 
-        steam_transport.send_packets(&mut server);
-        thread::sleep(delta_time);
+        let client_id: ClientId = 0;
+        // Send a text message for all clients except for Client 0
+        server.broadcast_message_except(client_id, DefaultChannel::ReliableOrdered, "server message");
+        
+        // Send message to only one client
+        server.send_message(client_id, DefaultChannel::ReliableOrdered, "server message");
+    
+        // Send packets to clients using the transport layer
+        transport.send_packets(&mut server);
+
+        std::thread::sleep(delta_time); // Running at 60hz
     }
 }

@@ -4,6 +4,9 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+macroquad = "0.4.14"
 renet = "2.0.0"
+renet_netcode = "2.0.0"
 renet_steam = "3.0.0"
+rkyv = "0.8.15"
 steamworks = "0.12.2"
