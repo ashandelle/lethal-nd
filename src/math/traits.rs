@@ -38,6 +38,30 @@ impl_abs!(
     f32, f64
 );
 
+pub trait CosSin{
+    fn cos(self) -> Self;
+    fn sin(self) -> Self;
+}
+
+macro_rules! impl_cossin {
+    ( $($ty:ty),* ) => {
+        $(
+            impl CosSin for $ty {
+                fn cos(self) -> Self {
+                    self.cos()
+                }
+                fn sin(self) -> Self {
+                    self.sin()
+                }
+            }
+        )*
+    };
+}
+
+impl_cossin!(
+    f32, f64
+);
+
 pub trait Zero{
     fn zero() -> Self;
 }

@@ -1,6 +1,6 @@
 use std::{iter::Sum, ops::{Add, Div, Mul, Neg, Sub}};
 
-use crate::math::{One, Sqrt, Zero};
+use crate::math::{CosSin, One, Sqrt, Zero};
 
 #[derive(Debug, Clone, Copy)]
 pub struct VecN<T, const N: usize> {
@@ -153,21 +153,17 @@ impl<T, const N: usize> VecN<T, N> {
     //     vecs
     // }
 
-    // pub fn to_bivecn(&self) -> BiVecN {
-    //     let dim = ((2.0*(self.e.len() as f64) + 0.25).sqrt() + 0.5).round() as usize;
-    //     let mut b = BiVecN::zero(dim);
-    //
-    //     let mut k = 0;
-    //     for i in 0..dim {
-    //         for j in (i+1)..dim {
-    //             b.m.e[i].e[j] = self.e[k];
-    //             b.m.e[j].e[i] = -self.e[k];
-    //             k+=1;
-    //         }
-    //     }
-    //
-    //     b
-    // }
+    pub fn rotate(&self, i: usize, j: usize, angle: T) -> VecN<T, N> where T: Mul<Output = T> + Add<Output = T> + Sub<Output = T> + CosSin + Copy {
+        let mut r = self.clone();
+
+        let a = r.e[i];
+        let b = r.e[j];
+
+        r.e[i] = a * angle.cos() + b * angle.sin();
+        r.e[j] = b * angle.cos() - a * angle.sin();
+
+        r
+    }
 
     // Zero
     pub fn zero() -> Self where T: Zero + Copy {
