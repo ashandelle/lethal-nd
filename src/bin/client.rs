@@ -1,13 +1,7 @@
 use renet::{ConnectionConfig, DefaultChannel, RenetClient};
 use renet_netcode::{ClientAuthentication, NetcodeClientTransport};
 
-use std::{net::{IpAddr, Ipv4Addr, SocketAddr, UdpSocket}, time::{Duration, SystemTime, UNIX_EPOCH}};
-
-// fn main() {
-
-// }
-
-use std::str::SplitWhitespace;
+use std::{net::{IpAddr, Ipv4Addr, SocketAddr, UdpSocket}, time::{Duration, SystemTime}};
 
 use lethallib::{client::{ClientSettings, ClientState}, language::Language};
 use macroquad::{prelude::*, ui::{Skin, hash, root_ui, widgets::InputText}};
@@ -61,17 +55,23 @@ async fn main() {
         .font_size(20)
         .build();
 
+    let mut clientoption: Option<RenetClient> = None;
+    let mut transportoption: Option<NetcodeClientTransport> = None;
+
     loop {
         let time = get_time();
         let dt = time - prev_time;
 
         let width = screen_width();
         let height = screen_height();
-        let ratio = width / height;
+        // let ratio = width / height;
         let screen = Vec2::new(width, height);
 
         match state {
             ClientState::MainMenu => {
+                clientoption = None;
+                transportoption = None;
+
                 clear_background(LIGHTGRAY);
 
                 let title_skin = Skin {
@@ -126,6 +126,9 @@ async fn main() {
                 root_ui().pop_skin();
             },
             ClientState::MainSettings => {
+                clientoption = None;
+                transportoption = None;
+
                 clear_background(LIGHTGRAY);
 
                 let button_skin = Skin {
@@ -146,6 +149,9 @@ async fn main() {
                 root_ui().pop_skin();
             },
             ClientState::JoinMenu { ref mut address, ref mut port } => 'JoinMenu: {
+                clientoption = None;
+                transportoption = None;
+
                 clear_background(LIGHTGRAY);
 
                 let large_button_skin = Skin {
@@ -230,32 +236,57 @@ async fn main() {
 
                 root_ui().pop_skin();
             },
-            ClientState::Connecting { address } => {
-                let mut client = RenetClient::new(ConnectionConfig::default());
+            ClientState::Connecting { address } => 'Connecting: {
+                match (clientoption.as_ref(), transportoption.as_ref()) {
+                    (Some(client), Some(transport)) => {
+                        if client.is_disconnected()  {
+                            // let reason = match client.disconnect_reason().unwrap() {
+                            //     renet::DisconnectReason::Transport => "renet::DisconnectReason::Transport",
+                            //     renet::DisconnectReason::DisconnectedByClient => "renet::DisconnectReason::DisconnectedByClient",
+                            //     renet::DisconnectReason::DisconnectedByServer => "renet::DisconnectReason::DisconnectedByServer",
+                            //     renet::DisconnectReason::PacketSerialization(serialization_error) => "renet::DisconnectReason::PacketSerialization",
+                            //     renet::DisconnectReason::PacketDeserialization(serialization_error) => "renet::DisconnectReason::PacketDeserialization",
+                            //     renet::DisconnectReason::ReceivedInvalidChannelId(_) => "renet::DisconnectReason::ReceivedInvalidChannelId",
+                            //     renet::DisconnectReason::SendChannelError { channel_id, error } => "renet::DisconnectReason::SendChannelError",
+                            //     renet::DisconnectReason::ReceiveChannelError { channel_id, error } => "renet::DisconnectReason::ReceiveChannelError",
+                            // };
+                            state = ClientState::Disconnected { reason: "" };
+                            break 'Connecting;
+                        } else if client.is_connected()  {
+                            state = ClientState::Lobby{ lobbyinfo: Default::default() };
+                            break 'Connecting;
+                        }
+                    },
+                    (_client, _transport) => {
+                        let client = RenetClient::new(ConnectionConfig::default());
 
-                let socket = UdpSocket::bind("127.0.0.1:0").unwrap();
+                        let socket = UdpSocket::bind("127.0.0.1:0").unwrap();
 
-                // Setup transport layer using renet_netcode
-                let current_time = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap();
-                let time: u128 = current_time.as_nanos();
-                let id = (time >> 64) as u64 ^ (time & u64::MAX as u128) as u64;
+                        // Setup transport layer using renet_netcode
+                        let current_time = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap();
+                        let time: u128 = current_time.as_nanos();
+                        let id = (time >> 64) as u64 ^ (time & u64::MAX as u128) as u64;
 
-                let authentication = ClientAuthentication::Unsecure {
-                    server_addr: address,
-                    client_id: id,
-                    user_data: None,
-                    protocol_id: 0,
-                };
+                        let authentication = ClientAuthentication::Unsecure {
+                            server_addr: address,
+                            client_id: id,
+                            user_data: None,
+                            protocol_id: 0,
+                        };
 
-                println!("Id {}", id);
+                        println!("Id {}", id);
 
-                let mut transport = NetcodeClientTransport::new(current_time, authentication, socket).unwrap();
+                        let transport = NetcodeClientTransport::new(current_time, authentication, socket).unwrap();
 
-                state = ClientState::Lobby { client, transport, lobbyinfo: Default::default() };
-
-                // client.disconnect();
+                        clientoption = Some(client);
+                        transportoption = Some(transport);
+                    },
+                }
             },
             ClientState::Disconnected { reason } => {
+                clientoption = None;
+                transportoption = None;
+
                 clear_background(LIGHTGRAY);
 
                 let button_skin = Skin {
@@ -275,34 +306,47 @@ async fn main() {
 
                 root_ui().pop_skin();
             },
-            ClientState::Lobby { ref mut client, ref mut transport, ref mut lobbyinfo } => {
-                    let delta_time = Duration::from_secs_f64(dt); // Duration::from_millis(16);
-                    // Receive new messages and update client
-                    client.update(delta_time);
-                    transport.update(delta_time, client).unwrap();
-                    
-                    if client.is_connected() {
-                        // Receive message from server
-                        while let Some(_message) = client.receive_message(DefaultChannel::ReliableOrdered) {
-                            // Handle received message
-                        }
-                        
-                        // Send message
-                        client.send_message(DefaultChannel::ReliableOrdered, "client text");
-                    }
+            ClientState::Lobby { ref mut lobbyinfo } => 'Lobby: {
+                let client = clientoption.as_mut().unwrap();
+                let transport = transportoption.as_mut().unwrap();
+
+                let delta_time = Duration::from_secs_f64(dt); // Duration::from_millis(16);
+                // Receive new messages and update client
+                client.update(delta_time);
+                transport.update(delta_time, client).unwrap();
                 
+                if client.is_connected() {
+                    // Receive message from server
+                    while let Some(_message) = client.receive_message(DefaultChannel::ReliableOrdered) {
+                        // Handle received message
+                    }
+                    
+                    // Send message
+                    client.send_message(DefaultChannel::ReliableOrdered, "client text");
+            
                     // Send packets to server using the transport layer
                     let _ = transport.send_packets(client);
-                    
-                    // std::thread::sleep(delta_time); // Running at 60hz
+
+                } else if client.is_disconnected() {
+                    state = ClientState::Disconnected { reason: "" };
+                    break 'Lobby;
+                } else {
+                    client.disconnect();
+                    state = ClientState::Disconnected { reason: "??" };
+                    break 'Lobby;
+                }
             },
-            ClientState::InGame { ref mut client, ref mut transport } => {
+            ClientState::InGame {} => {
+                let client = clientoption.as_mut().unwrap();
+                let transport = transportoption.as_mut().unwrap();
 
             },
             ClientState::Exit => {
                 break;
             },
         }
+                    
+        // std::thread::sleep(delta_time); // Running at 60hz
 
         // clear_background(LIGHTGRAY);
 

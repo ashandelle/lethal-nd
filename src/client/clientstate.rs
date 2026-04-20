@@ -19,13 +19,9 @@ pub enum ClientState<'a> {
         reason: &'a str,
     },
     Lobby {
-        client: RenetClient,
-        transport: NetcodeClientTransport,
         lobbyinfo: LobbyData,
     },
     InGame {
-        client: RenetClient,
-        transport: NetcodeClientTransport,
     },
     Exit,
 }
