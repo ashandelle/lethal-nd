@@ -3,6 +3,10 @@ name = "lethal-nd"
 version = "0.1.0"
 edition = "2024"
 
+[lib]
+name = "lethallib"
+path = "src/lib.rs"
+
 [dependencies]
 macroquad = "0.4.14"
 renet = "2.0.0"

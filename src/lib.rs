@@ -2,12 +2,23 @@
 #![allow(incomplete_features)]
 
 // use crate::math::{Vec4};
-mod math;
-mod player;
-mod rotation;
-mod quantize;
-mod servermessage;
-mod clientmessage;
+pub mod math;
+pub mod player;
+pub mod rotation;
+pub mod quantize;
+pub mod language;
+pub mod lobbydata;
+
+pub mod server;
+pub mod client;
+
+// pub mod serverstate;
+// pub mod servermessage;
+// pub mod serversettings;
+
+// pub mod clientstate;
+// pub mod clientmessage;
+// pub mod clientsettings;
 
 // pub fn add(left: u64, right: u64) -> u64 {
 //     left + right
