@@ -104,10 +104,12 @@ async fn main() {
                 curr -= exit_size.y / 2.0;
                 if root_ui().button((screen - exit_size) / 2.0 + Vec2::new(0.0,curr), lang.exit) {
                     state = ClientState::Exit;
+                    printstate(&state);
                 }
                 curr -= spacing + (exit_size.y + settings_size.y) / 2.0;
                 if root_ui().button((screen - settings_size) / 2.0 + Vec2::new(0.0,curr), lang.settings) {
                     state = ClientState::MainSettings;
+                    printstate(&state);
                 }
                 curr -= spacing + (settings_size.y + play_size.y) / 2.0;
                 if root_ui().button((screen - play_size) / 2.0 + Vec2::new(0.0,curr), lang.play) {
@@ -115,6 +117,7 @@ async fn main() {
                         address: Default::default(),
                         port: "5000".to_string(),
                     };
+                    printstate(&state);
                 }
 
                 root_ui().pop_skin();
@@ -144,6 +147,7 @@ async fn main() {
                 let back_size = root_ui().calc_size(lang.back);
                 if root_ui().button(Vec2::new(spacing, height - (spacing + back_size.y)), lang.back) {
                     state = ClientState::MainMenu;
+                    printstate(&state);
                 }
 
                 root_ui().pop_skin();
@@ -180,6 +184,7 @@ async fn main() {
                 let back_size = root_ui().calc_size(lang.back);
                 if root_ui().button(Vec2::new(spacing, height - (spacing + back_size.y)), lang.back) {
                     state = ClientState::MainMenu;
+                    printstate(&state);
                     break 'JoinMenu;
                 }
 
@@ -216,6 +221,7 @@ async fn main() {
                             state = ClientState::Disconnected {
                                 reason: "Invalid address"
                             };
+                            printstate(&state);
                             break 'JoinMenu;
                         },
                     };
@@ -225,6 +231,7 @@ async fn main() {
                             state = ClientState::Disconnected {
                                 reason: "Invalid address"
                             };
+                            printstate(&state);
                             break 'JoinMenu;
                         },
                     };
@@ -232,13 +239,19 @@ async fn main() {
                     let socket: SocketAddr = SocketAddr::new(IpAddr::V4(addr), pt);
 
                     state = ClientState::Connecting { address: socket };
+                    printstate(&state);
                 }
 
                 root_ui().pop_skin();
             },
             ClientState::Connecting { address } => 'Connecting: {
-                match (clientoption.as_ref(), transportoption.as_ref()) {
+                match (clientoption.as_mut(), transportoption.as_mut()) {
                     (Some(client), Some(transport)) => {
+                        let delta_time = Duration::from_secs_f64(dt); // Duration::from_millis(16);
+                        // Receive new messages and update client
+                        client.update(delta_time);
+                        transport.update(delta_time, client).unwrap();
+
                         if client.is_disconnected()  {
                             // let reason = match client.disconnect_reason().unwrap() {
                             //     renet::DisconnectReason::Transport => "renet::DisconnectReason::Transport",
@@ -251,10 +264,12 @@ async fn main() {
                             //     renet::DisconnectReason::ReceiveChannelError { channel_id, error } => "renet::DisconnectReason::ReceiveChannelError",
                             // };
                             state = ClientState::Disconnected { reason: "" };
-                            break 'Connecting;
+                            printstate(&state);
+                            // break 'Connecting;
                         } else if client.is_connected()  {
                             state = ClientState::Lobby{ lobbyinfo: Default::default() };
-                            break 'Connecting;
+                            printstate(&state);
+                            // break 'Connecting;
                         }
                     },
                     (_client, _transport) => {
@@ -302,6 +317,7 @@ async fn main() {
                 let back_size = root_ui().calc_size(lang.back);
                 if root_ui().button(Vec2::new(spacing, height - (spacing + back_size.y)), lang.back) {
                     state = ClientState::MainMenu;
+                    printstate(&state);
                 }
 
                 root_ui().pop_skin();
@@ -313,7 +329,14 @@ async fn main() {
                 let delta_time = Duration::from_secs_f64(dt); // Duration::from_millis(16);
                 // Receive new messages and update client
                 client.update(delta_time);
-                transport.update(delta_time, client).unwrap();
+                match transport.update(delta_time, client) {
+                    Ok(_) => {},
+                    Err(error) => {
+                        client.disconnect();
+                        state = ClientState::Disconnected { reason: "" }; // error
+                        printstate(&state);
+                    },
+                };
                 
                 if client.is_connected() {
                     // Receive message from server
@@ -328,12 +351,14 @@ async fn main() {
                     let _ = transport.send_packets(client);
 
                 } else if client.is_disconnected() {
-                    state = ClientState::Disconnected { reason: "" };
-                    break 'Lobby;
+                    state = ClientState::Disconnected { reason: "" }; // client.disconnect_reason
+                    printstate(&state);
+                    // break 'Lobby;
                 } else {
                     client.disconnect();
                     state = ClientState::Disconnected { reason: "??" };
-                    break 'Lobby;
+                    printstate(&state);
+                    // break 'Lobby;
                 }
             },
             ClientState::InGame {} => {
@@ -350,10 +375,39 @@ async fn main() {
 
         // clear_background(LIGHTGRAY);
 
-        println!("Framerate: {}", 1.0 / dt);
+        // println!("Framerate: {}", 1.0 / dt);
 
         next_frame().await;
 
         prev_time = time;
+    }
+}
+
+fn printstate(state: &ClientState) {
+    match state {
+        ClientState::MainMenu => {
+
+        },
+        ClientState::MainSettings => {
+            
+        },
+        ClientState::JoinMenu { address, port } => {
+            
+        },
+        ClientState::Connecting { address } => {
+            println!("Connecting...");
+        },
+        ClientState::Disconnected { reason } => {
+            println!("Disconnected: {}", reason);
+        },
+        ClientState::Lobby { lobbyinfo } => {
+            println!("Connected");
+        },
+        ClientState::InGame {  } => {
+            println!("Game started");
+        },
+        ClientState::Exit => {
+            println!("Exiting");
+        },
     }
 }
