@@ -1,8 +1,5 @@
 use std::net::SocketAddr;
 
-use renet::RenetClient;
-use renet_netcode::NetcodeClientTransport;
-
 use crate::lobbydata::LobbyData;
 
 pub enum ClientState {
