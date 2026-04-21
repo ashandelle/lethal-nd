@@ -244,7 +244,7 @@ async fn main() {
 
                 root_ui().pop_skin();
             },
-            ClientState::Connecting { address } => 'Connecting: {
+            ClientState::Connecting { address } => {
                 match (clientoption.as_mut(), transportoption.as_mut()) {
                     (Some(client), Some(transport)) => {
                         let delta_time = Duration::from_secs_f64(dt); // Duration::from_millis(16);
@@ -319,7 +319,7 @@ async fn main() {
 
                 root_ui().pop_skin();
             },
-            ClientState::Lobby { ref mut lobbyinfo } => 'Lobby: {
+            ClientState::Lobby { ref mut lobbyinfo } => {
                 let client = clientoption.as_mut().unwrap();
                 let transport = transportoption.as_mut().unwrap();
 
@@ -388,16 +388,16 @@ fn printstate(state: &ClientState) {
         ClientState::MainSettings => {
             
         },
-        ClientState::JoinMenu { address, port } => {
+        ClientState::JoinMenu { address: _, port: _ } => {
             
         },
-        ClientState::Connecting { address } => {
+        ClientState::Connecting { address: _ } => {
             println!("Connecting...");
         },
         ClientState::Disconnected { reason } => {
             println!("Disconnected: {}", reason);
         },
-        ClientState::Lobby { lobbyinfo } => {
+        ClientState::Lobby { lobbyinfo: _ } => {
             println!("Connected");
         },
         ClientState::InGame {  } => {
