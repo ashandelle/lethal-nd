@@ -219,7 +219,7 @@ async fn main() {
                         Ok(addr) => addr,
                         Err(err) => {
                             state = ClientState::Disconnected {
-                                reason: "Invalid address"
+                                reason: err.to_string()
                             };
                             printstate(&state);
                             break 'JoinMenu;
@@ -229,7 +229,7 @@ async fn main() {
                         Ok(port) => port,
                         Err(err) => {
                             state = ClientState::Disconnected {
-                                reason: "Invalid address"
+                                reason: err.to_string()
                             };
                             printstate(&state);
                             break 'JoinMenu;
@@ -250,20 +250,17 @@ async fn main() {
                         let delta_time = Duration::from_secs_f64(dt); // Duration::from_millis(16);
                         // Receive new messages and update client
                         client.update(delta_time);
-                        transport.update(delta_time, client).unwrap();
+                        match transport.update(delta_time, client) {
+                            Ok(_) => {},
+                            Err(error) => {
+                                client.disconnect();
+                                state = ClientState::Disconnected { reason: error.to_string() };
+                                printstate(&state);
+                            },
+                        };
 
                         if client.is_disconnected()  {
-                            // let reason = match client.disconnect_reason().unwrap() {
-                            //     renet::DisconnectReason::Transport => "renet::DisconnectReason::Transport",
-                            //     renet::DisconnectReason::DisconnectedByClient => "renet::DisconnectReason::DisconnectedByClient",
-                            //     renet::DisconnectReason::DisconnectedByServer => "renet::DisconnectReason::DisconnectedByServer",
-                            //     renet::DisconnectReason::PacketSerialization(serialization_error) => "renet::DisconnectReason::PacketSerialization",
-                            //     renet::DisconnectReason::PacketDeserialization(serialization_error) => "renet::DisconnectReason::PacketDeserialization",
-                            //     renet::DisconnectReason::ReceivedInvalidChannelId(_) => "renet::DisconnectReason::ReceivedInvalidChannelId",
-                            //     renet::DisconnectReason::SendChannelError { channel_id, error } => "renet::DisconnectReason::SendChannelError",
-                            //     renet::DisconnectReason::ReceiveChannelError { channel_id, error } => "renet::DisconnectReason::ReceiveChannelError",
-                            // };
-                            state = ClientState::Disconnected { reason: "" };
+                            state = ClientState::Disconnected { reason: format!("{:?}", client.disconnect_reason()) };
                             printstate(&state);
                             // break 'Connecting;
                         } else if client.is_connected()  {
@@ -298,7 +295,7 @@ async fn main() {
                     },
                 }
             },
-            ClientState::Disconnected { reason } => {
+            ClientState::Disconnected { ref reason } => {
                 clientoption = None;
                 transportoption = None;
 
@@ -326,14 +323,14 @@ async fn main() {
                 let client = clientoption.as_mut().unwrap();
                 let transport = transportoption.as_mut().unwrap();
 
-                let delta_time = Duration::from_secs_f64(dt); // Duration::from_millis(16);
+                let delta_time = Duration::from_secs_f64(dt);
                 // Receive new messages and update client
                 client.update(delta_time);
                 match transport.update(delta_time, client) {
                     Ok(_) => {},
                     Err(error) => {
                         client.disconnect();
-                        state = ClientState::Disconnected { reason: "" }; // error
+                        state = ClientState::Disconnected { reason: error.to_string() };
                         printstate(&state);
                     },
                 };
@@ -351,12 +348,12 @@ async fn main() {
                     let _ = transport.send_packets(client);
 
                 } else if client.is_disconnected() {
-                    state = ClientState::Disconnected { reason: "" }; // client.disconnect_reason
+                    state = ClientState::Disconnected { reason: format!("{:?}", client.disconnect_reason()) };
                     printstate(&state);
                     // break 'Lobby;
                 } else {
                     client.disconnect();
-                    state = ClientState::Disconnected { reason: "??" };
+                    state = ClientState::Disconnected { reason: "??".to_string() };
                     printstate(&state);
                     // break 'Lobby;
                 }

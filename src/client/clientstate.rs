@@ -5,7 +5,7 @@ use renet_netcode::NetcodeClientTransport;
 
 use crate::lobbydata::LobbyData;
 
-pub enum ClientState<'a> {
+pub enum ClientState {
     MainMenu,
     MainSettings,
     JoinMenu {
@@ -16,7 +16,7 @@ pub enum ClientState<'a> {
         address: SocketAddr,
     },
     Disconnected {
-        reason: &'a str,
+        reason: String,
     },
     Lobby {
         lobbyinfo: LobbyData,
