@@ -8,6 +8,7 @@ name = "lethallib"
 path = "src/lib.rs"
 
 [dependencies]
+mathnd = { git = "https://github.com/ashandelle/mathnd.git" }
 macroquad = "0.4.14"
 renet = "2.0.0"
 renet_netcode = "2.0.0"

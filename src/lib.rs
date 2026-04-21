@@ -1,8 +1,8 @@
 #![feature(generic_const_exprs)]
 #![allow(incomplete_features)]
 
-// use crate::math::{Vec4};
-pub mod math;
+use mathnd::vecn::VecN;
+
 pub mod player;
 pub mod rotation;
 pub mod quantize;
@@ -12,13 +12,7 @@ pub mod lobbydata;
 pub mod server;
 pub mod client;
 
-// pub mod serverstate;
-// pub mod servermessage;
-// pub mod serversettings;
-
-// pub mod clientstate;
-// pub mod clientmessage;
-// pub mod clientsettings;
+pub type Vecf64<const N: usize> = VecN<f64, N>;
 
 // pub fn add(left: u64, right: u64) -> u64 {
 //     left + right

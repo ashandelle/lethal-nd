@@ -242,6 +242,7 @@ name = "lethal-nd"
 version = "0.1.0"
 dependencies = [
  "macroquad",
+ "mathnd",
  "renet",
  "renet_netcode",
  "renet_steam",
@@ -289,6 +290,11 @@ checksum = "62bb907fe88d54d8d9ce32a3cceab4218ed2f6b7d35617cafe9adf84e43919cb"
 dependencies = [
  "libc",
 ]
+
+[[package]]
+name = "mathnd"
+version = "0.1.0"
+source = "git+https://github.com/ashandelle/mathnd.git#a82f0e6894a251d4baa78da9235ff5b077d9628a"
 
 [[package]]
 name = "miniquad"

@@ -1,4 +1,5 @@
-use crate::{math::{Vecf64}, rotation::Rotation};
+use crate::rotation::Rotation;
+use crate::Vecf64;
 
 pub struct Player<const N: usize> where [(); N - 1]: Sized {
     pub position: Vecf64<N>,

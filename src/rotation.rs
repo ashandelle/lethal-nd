@@ -1,6 +1,6 @@
 use std::{iter::Sum, ops::{Add, Mul, Sub}};
 
-use crate::math::{CosSin, MatN, VecN, Zero};
+use mathnd::{matn::MatN, traits::{CosSin, Zero}, vecn::VecN};
 
 pub struct Rotation<T, const N: usize> where [(); N - 1]: Sized {
     pub horizontal: MatN<T, {N - 1}>,
