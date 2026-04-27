@@ -383,7 +383,7 @@ dependencies = [
 [[package]]
 name = "mathnd"
 version = "0.1.0"
-source = "git+https://github.com/ashandelle/mathnd.git#a7233413e256f6accc8974aae7ef09ea35e59fa5"
+source = "git+https://github.com/ashandelle/mathnd.git#edfcdac56e9b3ff4d8896e101b82782d1b1fb396"
 dependencies = [
  "num-traits",
  "rand",

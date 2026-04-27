@@ -29,7 +29,7 @@ impl<T, const N: usize> Rotation<T, N> where T: Mul<Output = T> + Add<Output = T
         let mut arr = [T::zero(); N - 1];
         arr.copy_from_slice(&vec.e[1..]);
         let mut v = VecN { e: arr };
-        v = self.horizontal.transpose() * v;
+        v = self.horizontal.transposed() * v;
         let mut arr = [T::zero(); N];
         arr[1..].copy_from_slice(&v.e);
         arr[0] = vec.e[0];
@@ -51,7 +51,7 @@ impl<T, const N: usize> Rotation<T, N> where T: Mul<Output = T> + Add<Output = T
         let mut arr = [T::zero(); N - 1];
         arr.copy_from_slice(&(vec.rotate(1, 0, self.vertical)).e[1..]);
         let mut v = VecN { e: arr };
-        v = self.horizontal.transpose() * v;
+        v = self.horizontal.transposed() * v;
         let mut arr = [T::zero(); N];
         arr[1..].copy_from_slice(&v.e);
         arr[0] = vec.e[0];
