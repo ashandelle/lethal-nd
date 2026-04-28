@@ -3,7 +3,7 @@ use renet_netcode::{NetcodeServerTransport, ServerAuthentication, ServerConfig};
 
 use std::{net::{IpAddr, Ipv4Addr, SocketAddr, UdpSocket}, time::{Duration, Instant, SystemTime, UNIX_EPOCH}};
 
-use lethallib::server::ServerState;
+use lethallib::server::{ServerConnectedState, ServerState};
 
 fn main() {
     
@@ -88,14 +88,11 @@ fn main() {
                 serveroption = Some(server);
                 transportoption = Some(transport);
 
-                state = ServerState::Lobby;
+                state = ServerState::Connected{ connectedstate: ServerConnectedState::Lobby };
             },
-            ServerState::Lobby => {
+            ServerState::Connected { ref mut connectedstate } => {
                 let server = serveroption.as_mut().unwrap();
                 let transport = transportoption.as_mut().unwrap();
-            },
-            ServerState::InGame => {
-
             },
             ServerState::Close => {
                 break;

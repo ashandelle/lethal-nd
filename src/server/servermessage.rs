@@ -16,4 +16,5 @@ pub enum ReliableServerMessage {
     //     translation: [f32; 3],
     //     rotation: f32,
     // },
+    GameStart,
 }

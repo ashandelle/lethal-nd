@@ -1,6 +1,6 @@
 use std::net::SocketAddr;
 
-use crate::lobbydata::LobbyData;
+// use crate::lobbydata::LobbyData;
 
 pub enum ClientState {
     MainMenu,
@@ -15,10 +15,13 @@ pub enum ClientState {
     Disconnected {
         reason: String,
     },
-    Lobby {
-        lobbyinfo: LobbyData,
-    },
-    InGame {
+    Connected {
+        connectedstate: ClientConnectedState,
     },
     Exit,
+}
+
+pub enum ClientConnectedState {
+    Lobby,
+    InGame,
 }

@@ -3,8 +3,30 @@ use renet_netcode::{ClientAuthentication, NetcodeClientTransport};
 
 use std::{net::{IpAddr, Ipv4Addr, SocketAddr, UdpSocket}, time::{Duration, SystemTime}};
 
-use lethallib::{client::{ClientSettings, ClientState}, language::Language};
+use lethallib::{client::{ClientConnectedState, ClientSettings, ClientState}, language::Language};
 use macroquad::{prelude::*, ui::{Skin, hash, root_ui, widgets::InputText}};
+
+macro_rules! client_update {
+    ($dt_name:ident, $client_name:ident, $transport_name:ident, $state_name:ident) => {
+        let delta_time = Duration::from_secs_f64($dt_name); // Duration::from_millis(16);
+        // Receive new messages and update client
+        $client_name.update(delta_time);
+        match $transport_name.update(delta_time, $client_name) {
+            Ok(_) => {},
+            Err(error) => {
+                $client_name.disconnect();
+                $state_name = ClientState::Disconnected { reason: error.to_string() };
+                printstate(&$state_name);
+            },
+        };
+    }
+}
+
+// macro_rules! client_isconnected {
+//     () => {
+        
+//     };
+// }
 
 #[macroquad::main("Lethal4D")]
 async fn main() {
@@ -247,24 +269,25 @@ async fn main() {
             ClientState::Connecting { address } => {
                 match (clientoption.as_mut(), transportoption.as_mut()) {
                     (Some(client), Some(transport)) => {
-                        let delta_time = Duration::from_secs_f64(dt); // Duration::from_millis(16);
-                        // Receive new messages and update client
-                        client.update(delta_time);
-                        match transport.update(delta_time, client) {
-                            Ok(_) => {},
-                            Err(error) => {
-                                client.disconnect();
-                                state = ClientState::Disconnected { reason: error.to_string() };
-                                printstate(&state);
-                            },
-                        };
+                        // let delta_time = Duration::from_secs_f64(dt); // Duration::from_millis(16);
+                        // // Receive new messages and update client
+                        // client.update(delta_time);
+                        // match transport.update(delta_time, client) {
+                        //     Ok(_) => {},
+                        //     Err(error) => {
+                        //         client.disconnect();
+                        //         state = ClientState::Disconnected { reason: error.to_string() };
+                        //         printstate(&state);
+                        //     },
+                        // };
+                        client_update!(dt, client, transport, state);
 
                         if client.is_disconnected()  {
                             state = ClientState::Disconnected { reason: format!("{:?}", client.disconnect_reason()) };
                             printstate(&state);
                             // break 'Connecting;
                         } else if client.is_connected()  {
-                            state = ClientState::Lobby{ lobbyinfo: Default::default() };
+                            state = ClientState::Connected { connectedstate: ClientConnectedState::Lobby };
                             printstate(&state);
                             // break 'Connecting;
                         }
@@ -319,21 +342,11 @@ async fn main() {
 
                 root_ui().pop_skin();
             },
-            ClientState::Lobby { ref mut lobbyinfo } => {
+            ClientState::Connected { ref mut connectedstate } => {
                 let client = clientoption.as_mut().unwrap();
                 let transport = transportoption.as_mut().unwrap();
 
-                let delta_time = Duration::from_secs_f64(dt);
-                // Receive new messages and update client
-                client.update(delta_time);
-                match transport.update(delta_time, client) {
-                    Ok(_) => {},
-                    Err(error) => {
-                        client.disconnect();
-                        state = ClientState::Disconnected { reason: error.to_string() };
-                        printstate(&state);
-                    },
-                };
+                client_update!(dt, client, transport, state);
                 
                 if client.is_connected() {
                     // Receive message from server
@@ -350,19 +363,17 @@ async fn main() {
                 } else if client.is_disconnected() {
                     state = ClientState::Disconnected { reason: format!("{:?}", client.disconnect_reason()) };
                     printstate(&state);
-                    // break 'Lobby;
                 } else {
                     client.disconnect();
                     state = ClientState::Disconnected { reason: "??".to_string() };
                     printstate(&state);
-                    // break 'Lobby;
                 }
             },
-            ClientState::InGame {} => {
-                let client = clientoption.as_mut().unwrap();
-                let transport = transportoption.as_mut().unwrap();
+            // ClientState::InGame {} => {
+            //     let client = clientoption.as_mut().unwrap();
+            //     let transport = transportoption.as_mut().unwrap();
 
-            },
+            // },
             ClientState::Exit => {
                 break;
             },
@@ -397,11 +408,17 @@ fn printstate(state: &ClientState) {
         ClientState::Disconnected { reason } => {
             println!("Disconnected: {}", reason);
         },
-        ClientState::Lobby { lobbyinfo: _ } => {
+        ClientState::Connected { connectedstate } => {
             println!("Connected");
-        },
-        ClientState::InGame {  } => {
-            println!("Game started");
+
+            match connectedstate {
+                ClientConnectedState::Lobby => {
+                    println!("In lobby");
+                },
+                ClientConnectedState::InGame => {
+                    println!("Game started");
+                },
+            }
         },
         ClientState::Exit => {
             println!("Exiting");

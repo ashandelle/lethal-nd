@@ -1,11 +1,11 @@
-pub struct LobbyData {
+// pub struct LobbyData {
     
-}
+// }
 
-impl Default for LobbyData {
-    fn default() -> Self {
-        LobbyData {
+// impl Default for LobbyData {
+//     fn default() -> Self {
+//         LobbyData {
 
-        }
-    }
-}
+//         }
+//     }
+// }
