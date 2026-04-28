@@ -99,8 +99,9 @@ fn main() {
             },
         }
 
-        dt_err = (0.9 * dt_err) + (0.1 * (target_dt - dt));
-        std::thread::sleep(Duration::from_secs_f64(dt_err.max(0.0)));
+        dt_err += target_dt - dt;
+        dt_err = dt_err.max(0.0);
+        std::thread::sleep(Duration::from_secs_f64(dt_err));
 
         println!("Framerate: {}", 1.0 / dt);
 

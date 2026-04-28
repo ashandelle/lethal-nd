@@ -1,7 +1,7 @@
 use renet::{ConnectionConfig, DefaultChannel, RenetClient};
 use renet_netcode::{ClientAuthentication, NetcodeClientTransport};
 
-use std::{net::{IpAddr, Ipv4Addr, SocketAddr, UdpSocket}, time::{Duration, SystemTime}};
+use std::{net::{IpAddr, Ipv4Addr, SocketAddr, UdpSocket}, time::{Duration, SystemTime, UNIX_EPOCH}};
 
 use lethallib::{client::{ClientConnectedState, ClientSettings, ClientState}, language::Language};
 use macroquad::{prelude::*, ui::{Skin, hash, root_ui, widgets::InputText}};
@@ -30,7 +30,11 @@ macro_rules! client_update {
 
 #[macroquad::main("Lethal4D")]
 async fn main() {
-    let mut prev_time = get_time();
+    let target_fps = 60;
+    let target_dt = 1.0 / target_fps as f64;
+    let mut dt_err = 0.0;
+
+    let mut prev_time = SystemTime::now().duration_since(UNIX_EPOCH).expect("time should go forward");
 
     let mut lang = Language::default();
     let mut settings = ClientSettings::default();
@@ -81,8 +85,8 @@ async fn main() {
     let mut transportoption: Option<NetcodeClientTransport> = None;
 
     loop {
-        let time = get_time();
-        let dt = time - prev_time;
+        let time = SystemTime::now().duration_since(UNIX_EPOCH).expect("time should go forward");
+        let dt = (time - prev_time).as_secs_f64();
 
         let width = screen_width();
         let height = screen_height();
@@ -386,6 +390,12 @@ async fn main() {
         // println!("Framerate: {}", 1.0 / dt);
 
         next_frame().await;
+
+        dt_err += target_dt - dt;
+        dt_err = dt_err.max(0.0);
+        std::thread::sleep(Duration::from_secs_f64(dt_err));
+
+        println!("Framerate: {}", 1.0 / dt);
 
         prev_time = time;
     }
