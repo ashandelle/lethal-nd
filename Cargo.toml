@@ -16,3 +16,5 @@ renet_steam = "3.0.0"
 serde = { version = "1.0.228", features = ["derive"] }
 steamworks = "0.12.2"
 num-traits = "0.2.19"
+bincode = "2.0.1"
+bytes = { version = "1.11.1", features = ["serde"] }

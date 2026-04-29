@@ -1,29 +1,52 @@
+use bincode::error::DecodeError;
 use renet::{ConnectionConfig, DefaultChannel, RenetClient};
 use renet_netcode::{ClientAuthentication, NetcodeClientTransport};
 
 use std::{net::{IpAddr, Ipv4Addr, SocketAddr, UdpSocket}, time::{Duration, SystemTime, UNIX_EPOCH}};
 
-use lethallib::{client::{ClientConnectedState, ClientSettings, ClientState}, disconnected_menu, join_menu, language::Language, main_menu, skins, styles};
+use lethallib::{client::{ClientConnectedState, ClientSettings, ClientState}, disconnected_menu, join_menu, language::Language, main_menu, server::{self, ReliableServerMessage, UnreliableServerMessage}, skins, styles};
 use macroquad::{prelude::*, ui::{Skin, hash, root_ui, widgets::InputText}};
 
 macro_rules! client_update {
-    ($dt_name:ident, $client_name:ident, $transport_name:ident, $state_name:ident) => {
-        let delta_time = Duration::from_secs_f64($dt_name); // Duration::from_millis(16);
+    ($dt:ident, $client:ident, $transport:ident, $state:ident) => {
+        let delta_time = Duration::from_secs_f64($dt); // Duration::from_millis(16);
         // Receive new messages and update client
-        $client_name.update(delta_time);
-        match $transport_name.update(delta_time, $client_name) {
+        $client.update(delta_time);
+        match $transport.update(delta_time, $client) {
             Ok(_) => {},
             Err(error) => {
-                $client_name.disconnect();
-                $state_name = ClientState::Disconnected { reason: error.to_string() };
-                printstate(&$state_name);
+                $client.disconnect();
+                $state = ClientState::Disconnected { reason: error.to_string() };
+                printstate(&$state);
             },
         };
     }
 }
 
+macro_rules! receive_message {
+    ($client:ident, $messages_name:ident, $message_type:ty, $channel_id:expr) => {
+        let mut $messages_name: Vec<$message_type> = Vec::new();
+
+        // Receive message from server
+        while let Some(message) = $client.receive_message($channel_id) {
+            let message: Result<($message_type, usize), DecodeError>  = bincode::decode_from_slice(&message, bincode::config::standard());
+
+            match message {
+                Ok((servermessage, _)) => {
+                    $messages_name.push(servermessage);
+                },
+                Err(err) => {
+                    println!("Error: {:?}", err);
+                }
+            }
+        }
+    }
+}
+
 #[macroquad::main("Lethal4D")]
 async fn main() {
+    const N: usize = 3;
+
     let target_fps = 60;
     let target_dt = 1.0 / target_fps as f64;
     let mut dt_err = 0.0;
@@ -143,16 +166,34 @@ async fn main() {
                 client_update!(dt, client, transport, state);
                 
                 if client.is_connected() {
-                    // Receive message from server
-                    while let Some(_message) = client.receive_message(DefaultChannel::ReliableOrdered) {
-                        // Handle received message
-                    }
+                    // let mut reliablemessages: Vec<ReliableServerMessage> = Vec::new();
+
+                    // // Receive message from server
+                    // while let Some(message) = client.receive_message(DefaultChannel::ReliableOrdered) {
+                    //     let message: Result<(ReliableServerMessage, usize), DecodeError>  = bincode::decode_from_slice(&message, bincode::config::standard());
+
+                    //     match message {
+                    //         Ok((servermessage, _)) => {
+                    //             reliablemessages.push(servermessage);
+                    //         },
+                    //         Err(err) => {
+                    //             println!("Error: {:?}", err);
+                    //         }
+                    //     }
+                    // }
+                    receive_message!(client, reliablemessages, ReliableServerMessage<N>, DefaultChannel::ReliableOrdered);
+                    receive_message!(client, unreliablemessages, UnreliableServerMessage<N>, DefaultChannel::Unreliable);
                     
                     // Send message
-                    client.send_message(DefaultChannel::ReliableOrdered, "client text");
+                    // client.send_message(DefaultChannel::ReliableOrdered, "client text");
             
                     // Send packets to server using the transport layer
-                    let _ = transport.send_packets(client);
+                    match transport.send_packets(client) {
+                        Ok(_) => {},
+                        Err(err) => {
+                            println!("Error: {:?}", err);
+                        },
+                    }
 
                 } else if client.is_disconnected() {
                     state = ClientState::Disconnected { reason: format!("{:?}", client.disconnect_reason()) };

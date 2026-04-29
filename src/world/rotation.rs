@@ -1,3 +1,4 @@
+use bincode::{Decode, Encode};
 use std::{iter::Sum, ops::{Add, Mul, Sub}};
 
 use mathnd::{matn::MatN, traits::CosSin, vecn::VecN};
@@ -8,10 +9,11 @@ pub struct Rotation<T, const N: usize> where [(); N - 1]: Sized {
     pub vertical: T,
 }
 
-pub struct RotationQuantized<const N: usize> where [(); N - 1]: Sized {
-    pub horizontal: MatN<u16, {N - 1}>,
-    pub vertical: u8,
-}
+// #[derive(Encode, Decode, Debug)]
+// pub struct RotationQuantized<const N: usize> where [(); N - 1]: Sized {
+//     pub horizontal: MatNQuantized<u16, {N - 1}>,
+//     pub vertical: u8,
+// }
 
 impl<T, const N: usize> Rotation<T, N> where T: Mul<Output = T> + Add<Output = T> + Sub<Output = T> + Sum + CosSin + Zero + Copy, [(); N - 1 ]: Sized {
     pub fn rotate_horizontal(&self, vec: VecN<T, N>) -> VecN<T, N> {

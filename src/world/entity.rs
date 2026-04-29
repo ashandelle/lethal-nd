@@ -1,13 +1,21 @@
-use crate::rotation::Rotation;
-use crate::Vecf64;
+use bincode::{Decode, Encode};
 
-pub struct Player<const N: usize> where [(); N - 1]: Sized {
+use crate::{Vecf64, Rotationf64};
+
+pub struct Entity<const N: usize> where [(); N - 1]: Sized {
+    pub id: u64,
+    pub entitytype: EntityType,
+
     pub position: Vecf64<N>,
-    pub velocity: Vecf64<N>,
-    pub rotation: Rotation<f64, N>,
+    // pub velocity: Vecf64<N>,
+    pub rotation: Rotationf64<N>,
 }
 
-impl<const N: usize> Player<N> where [(); N - 1]: Sized {
+pub enum EntityType {
+    Player,
+}
+
+impl<const N: usize> Entity<N> where [(); N - 1]: Sized {
     pub fn worldtoplayer(&self, vec: Vecf64<N>) -> Vecf64<N> {
         self.rotation.rotate_horizontal(vec - self.position)
     }

@@ -1,18 +1,23 @@
 #![feature(generic_const_exprs)]
 #![allow(incomplete_features)]
 
-use mathnd::vecn::VecN;
+use mathnd::{bivecn::BiVecN, matn::MatN, vecn::VecN};
 
-pub mod player;
-pub mod rotation;
+use crate::world::rotation::Rotation;
+
 pub mod quantize;
 pub mod language;
 pub mod lobbydata;
+pub mod disconnectreason;
 
 pub mod server;
 pub mod client;
+pub mod world;
 
 pub type Vecf64<const N: usize> = VecN<f64, N>;
+pub type Matf64<const N: usize> = MatN<f64, N>;
+pub type BiVecf64<const N: usize> = BiVecN<f64, N>;
+pub type Rotationf64<const N: usize> = Rotation<f64, N>;
 
 // pub fn add(left: u64, right: u64) -> u64 {
 //     left + right
