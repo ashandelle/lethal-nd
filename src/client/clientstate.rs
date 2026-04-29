@@ -15,13 +15,11 @@ pub enum ClientState {
     Disconnected {
         reason: String,
     },
-    Connected {
-        connectedstate: ClientConnectedState,
-    },
+    Connected,
     Exit,
 }
 
-pub enum ClientConnectedState {
-    Lobby,
-    InGame,
-}
+// pub enum ClientConnectedState {
+//     Lobby,
+//     InGame,
+// }

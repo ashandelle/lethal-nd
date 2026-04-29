@@ -31,3 +31,11 @@ impl<const N: usize> World<N> where [(); N - 1]: Sized {
 
 //     }
 // }
+
+impl<const N: usize> World<N> where [(); N - 1]: Sized {
+    pub fn new() -> Self {
+        World {
+            entities: HashMap::new(),
+        }
+    }
+}

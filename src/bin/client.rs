@@ -4,7 +4,7 @@ use renet_netcode::{ClientAuthentication, NetcodeClientTransport};
 
 use std::{net::{IpAddr, Ipv4Addr, SocketAddr, UdpSocket}, time::{Duration, SystemTime, UNIX_EPOCH}};
 
-use lethallib::{client::{ClientConnectedState, ClientSettings, ClientState, ReliableClientMessage, UnreliableClientMessage}, disconnected_menu, join_menu, language::Language, main_menu, server::{self, ReliableServerMessage, UnreliableServerMessage}, skins, styles};
+use lethallib::{client::{ClientSettings, ClientState, ReliableClientMessage, UnreliableClientMessage}, disconnected_menu, join_menu, language::Language, main_menu, server::{ReliableServerMessage, UnreliableServerMessage}, skins, styles, world::world::World};
 use macroquad::{prelude::*, ui::{Skin, hash, root_ui, widgets::InputText}};
 
 macro_rules! client_update {
@@ -45,6 +45,7 @@ async fn main() {
 
     let mut clientoption: Option<RenetClient> = None;
     let mut transportoption: Option<NetcodeClientTransport> = None;
+    let mut worldoption: Option<World<N>> = None;
 
     loop {
         let time = SystemTime::now().duration_since(UNIX_EPOCH).expect("time should go forward");
@@ -59,12 +60,14 @@ async fn main() {
             ClientState::MainMenu => {
                 clientoption = None;
                 transportoption = None;
+                worldoption = None;
 
                 main_menu!(lang, state, screen, title_skin, large_button_skin);
             },
             ClientState::MainSettings => {
                 clientoption = None;
                 transportoption = None;
+                worldoption = None;
 
                 clear_background(LIGHTGRAY);
 
@@ -89,6 +92,7 @@ async fn main() {
             ClientState::JoinMenu { ref mut address, ref mut port } => 'JoinMenu: {
                 clientoption = None;
                 transportoption = None;
+                worldoption = None;
 
                 join_menu!(lang, 'JoinMenu, state, address, port, height, screen, large_button_skin, small_button_skin, input_skin);
             },
@@ -102,7 +106,7 @@ async fn main() {
                             printstate(&state);
                             // break 'Connecting;
                         } else if client.is_connected()  {
-                            state = ClientState::Connected { connectedstate: ClientConnectedState::Lobby };
+                            state = ClientState::Connected;// { connectedstate: ClientConnectedState::Lobby };
                             printstate(&state);
                             // break 'Connecting;
                         }
@@ -130,16 +134,18 @@ async fn main() {
 
                         clientoption = Some(client);
                         transportoption = Some(transport);
+                        worldoption = Some(World::new());
                     },
                 }
             },
             ClientState::Disconnected { ref reason } => {
                 clientoption = None;
                 transportoption = None;
+                worldoption = None;
 
                 disconnected_menu!(lang, state, reason, height, screen, large_button_skin);
             },
-            ClientState::Connected { ref mut connectedstate } => {
+            ClientState::Connected => {
                 macro_rules! receive_messages {
                     ($client:ident, $messages_name:ident, $message_type:ty, $channel_id:expr) => {
                         let mut $messages_name: Vec<$message_type> = Vec::new();
@@ -243,17 +249,17 @@ fn printstate(state: &ClientState) {
         ClientState::Disconnected { reason } => {
             println!("Disconnected: {}", reason);
         },
-        ClientState::Connected { connectedstate } => {
+        ClientState::Connected => {// { connectedstate } => {
             println!("Connected");
 
-            match connectedstate {
-                ClientConnectedState::Lobby => {
-                    println!("In lobby");
-                },
-                ClientConnectedState::InGame => {
-                    println!("Game started");
-                },
-            }
+            // match connectedstate {
+            //     ClientConnectedState::Lobby => {
+            //         println!("In lobby");
+            //     },
+            //     ClientConnectedState::InGame => {
+            //         println!("Game started");
+            //     },
+            // }
         },
         ClientState::Exit => {
             println!("Exiting");

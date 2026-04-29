@@ -1,12 +1,10 @@
 pub enum ServerState {
     Startup,
-    Connected {
-        connectedstate: ServerConnectedState,
-    },
+    Connected,
     Close,
 }
 
-pub enum ServerConnectedState {
-    Lobby,
-    InGame,
-}
+// pub enum ServerConnectedState {
+//     Lobby,
+//     InGame,
+// }
