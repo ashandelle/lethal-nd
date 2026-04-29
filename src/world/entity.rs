@@ -11,6 +11,7 @@ pub struct Entity<const N: usize> where [(); N - 1]: Sized {
     pub rotation: Rotationf64<N>,
 }
 
+#[derive(Encode, Decode, Debug)]
 pub enum EntityType {
     Player,
 }

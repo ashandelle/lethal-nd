@@ -1,13 +1,14 @@
 use renet::{ClientId, ConnectionConfig, DefaultChannel, RenetServer, ServerEvent};
 use renet_netcode::{NetcodeServerTransport, ServerAuthentication, ServerConfig};
+use bincode::error::DecodeError;
 
 use std::{net::{IpAddr, Ipv4Addr, SocketAddr, UdpSocket}, time::{Duration, Instant, SystemTime, UNIX_EPOCH}};
 
-use lethallib::server::{ServerConnectedState, ServerState};
+use lethallib::{client, disconnectreason::DisconnectReason, server::{ReliableServerMessage, ServerConnectedState, ServerMessageVisibility, ServerState, UnreliableServerMessage}};
 
 fn main() {
     const N: usize = 3;
-    
+
     let target_fps = 60;
     let target_dt = 1.0 / target_fps as f64;
     let mut dt_err = 0.0;
@@ -48,6 +49,47 @@ fn main() {
                 state = ServerState::Connected{ connectedstate: ServerConnectedState::Lobby };
             },
             ServerState::Connected { ref mut connectedstate } => {
+                macro_rules! receive_messages {
+                    ($server:ident, $messages_name:ident, $message_type:ty, $channel_id:expr) => {
+                        let mut $messages_name: Vec<$message_type> = Vec::new();
+
+                        for client_id in $server.clients_id() {
+                            // The enum DefaultChannel describe the channels used by the default configuration
+                            while let Some(message) = $server.receive_message(client_id, $channel_id) {
+                                let message: Result<($message_type, usize), DecodeError>  = bincode::decode_from_slice(&message, bincode::config::standard());
+
+                                match message {
+                                    Ok((servermessage, _)) => {
+                                        $messages_name.push(servermessage);
+                                    },
+                                    Err(err) => {
+                                        println!("Error: {:?}", err);
+                                    }
+                                }
+                            }
+                        }
+                    };
+                }
+
+                macro_rules! send_messages {
+                    ($server:ident, $messages_name:ident, $message_type:ty, $channel_id:expr) => {
+                        for (visibility, message) in $messages_name.iter() {
+                            let message = bincode::encode_to_vec(&message, bincode::config::standard()).unwrap();
+                            match *visibility {
+                                lethallib::server::ServerMessageVisibility::Broadcast => {
+                                    $server.broadcast_message($channel_id, message);
+                                },
+                                lethallib::server::ServerMessageVisibility::Except { id } => {
+                                    $server.broadcast_message_except(id, $channel_id, message);
+                                },
+                                lethallib::server::ServerMessageVisibility::Only { id } => {
+                                    $server.send_message(id, $channel_id, message);
+                                },
+                            }
+                        }
+                    };
+                }
+
                 let server = serveroption.as_mut().unwrap();
                 let transport = transportoption.as_mut().unwrap();
 
@@ -60,42 +102,50 @@ fn main() {
                         println!("Error: {:?}", err);
                     },
                 }
+
+                let mut reliablemessagessent: Vec<(ServerMessageVisibility, ReliableServerMessage<N>)> = Vec::new();
+                let mut unreliablemessagessent: Vec<(ServerMessageVisibility, UnreliableServerMessage<N>)> = Vec::new();
         
                 // Check for client connections/disconnections
                 while let Some(event) = server.get_event() {
                     match event {
                         ServerEvent::ClientConnected { client_id } => {
+                            reliablemessagessent.push((
+                                    ServerMessageVisibility::Except { id: client_id },
+                                    ReliableServerMessage::ClientConnected { id: client_id }
+                            ));
                             println!("Client {client_id} connected");
                         }
                         ServerEvent::ClientDisconnected { client_id, reason } => {
+                            let publicreason = match reason {
+                                renet::DisconnectReason::DisconnectedByClient => DisconnectReason::Left,
+                                renet::DisconnectReason::DisconnectedByServer => DisconnectReason::Kicked,
+                                _ => DisconnectReason::NetworkError,
+                            };
+                            reliablemessagessent.push((
+                                    ServerMessageVisibility::Except { id: client_id },
+                                    ReliableServerMessage::ClientDisconnected { id: client_id, reason: publicreason }
+                            ));
                             println!("Client {client_id} disconnected: {reason}");
                         }
                     }
                 }
 
-    //     // Receive message from channel
-    //     for client_id in server.clients_id() {
-    //         // The enum DefaultChannel describe the channels used by the default configuration
-    //         while let Some(_message) = server.receive_message(client_id, DefaultChannel::ReliableOrdered) {
-    //             // Handle received message
-    //         }
-    //     }
-        
-    //     // Send a text message for all clients
-    //     server.broadcast_message(DefaultChannel::ReliableOrdered, "server message");
+                receive_messages!(server, reliablemessagesreceived, ReliableServerMessage<N>, DefaultChannel::ReliableOrdered);
+                receive_messages!(server, unreliablemessagesreceived, UnreliableServerMessage<N>, DefaultChannel::Unreliable);
 
-    //     let client_id: ClientId = 0;
-    //     // Send a text message for all clients except for Client 0
-    //     server.broadcast_message_except(client_id, DefaultChannel::ReliableOrdered, "server message");
-        
-    //     // Send message to only one client
-    //     server.send_message(client_id, DefaultChannel::ReliableOrdered, "server message");
+
+
+
+
+
+
+
+                send_messages!(server, reliablemessagessent, ReliableServerMessage<N>, DefaultChannel::ReliableOrdered);
+                send_messages!(server, unreliablemessagessent, UnreliableServerMessage<N>, DefaultChannel::Unreliable);
     
-    //     // Send packets to clients using the transport layer
-    //     transport.send_packets(&mut server);
-
-    //     std::thread::sleep(delta_time); // Running at 60hz
-    // }
+                // Send packets to clients using the transport layer
+                transport.send_packets(server);
             },
             ServerState::Close => {
                 break;

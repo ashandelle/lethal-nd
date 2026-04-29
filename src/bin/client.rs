@@ -4,7 +4,7 @@ use renet_netcode::{ClientAuthentication, NetcodeClientTransport};
 
 use std::{net::{IpAddr, Ipv4Addr, SocketAddr, UdpSocket}, time::{Duration, SystemTime, UNIX_EPOCH}};
 
-use lethallib::{client::{ClientConnectedState, ClientSettings, ClientState}, disconnected_menu, join_menu, language::Language, main_menu, server::{self, ReliableServerMessage, UnreliableServerMessage}, skins, styles};
+use lethallib::{client::{ClientConnectedState, ClientSettings, ClientState, ReliableClientMessage, UnreliableClientMessage}, disconnected_menu, join_menu, language::Language, main_menu, server::{self, ReliableServerMessage, UnreliableServerMessage}, skins, styles};
 use macroquad::{prelude::*, ui::{Skin, hash, root_ui, widgets::InputText}};
 
 macro_rules! client_update {
@@ -20,26 +20,6 @@ macro_rules! client_update {
                 printstate(&$state);
             },
         };
-    }
-}
-
-macro_rules! receive_message {
-    ($client:ident, $messages_name:ident, $message_type:ty, $channel_id:expr) => {
-        let mut $messages_name: Vec<$message_type> = Vec::new();
-
-        // Receive message from server
-        while let Some(message) = $client.receive_message($channel_id) {
-            let message: Result<($message_type, usize), DecodeError>  = bincode::decode_from_slice(&message, bincode::config::standard());
-
-            match message {
-                Ok((servermessage, _)) => {
-                    $messages_name.push(servermessage);
-                },
-                Err(err) => {
-                    println!("Error: {:?}", err);
-                }
-            }
-        }
     }
 }
 
@@ -160,32 +140,55 @@ async fn main() {
                 disconnected_menu!(lang, state, reason, height, screen, large_button_skin);
             },
             ClientState::Connected { ref mut connectedstate } => {
+                macro_rules! receive_messages {
+                    ($client:ident, $messages_name:ident, $message_type:ty, $channel_id:expr) => {
+                        let mut $messages_name: Vec<$message_type> = Vec::new();
+
+                        // Receive message from server
+                        while let Some(message) = $client.receive_message($channel_id) {
+                            let message: Result<($message_type, usize), DecodeError>  = bincode::decode_from_slice(&message, bincode::config::standard());
+
+                            match message {
+                                Ok((servermessage, _)) => {
+                                    $messages_name.push(servermessage);
+                                },
+                                Err(err) => {
+                                    println!("Error: {:?}", err);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                macro_rules! send_messages {
+                    ($client:ident, $messages_name:ident, $message_type:ty, $channel_id:expr) => {
+                        for message in $messages_name.iter() {
+                            let message = bincode::encode_to_vec(&message, bincode::config::standard()).unwrap();
+                            $client.send_message($channel_id, message);
+                        }
+                    };
+                }
+
                 let client = clientoption.as_mut().unwrap();
                 let transport = transportoption.as_mut().unwrap();
 
                 client_update!(dt, client, transport, state);
                 
                 if client.is_connected() {
-                    // let mut reliablemessages: Vec<ReliableServerMessage> = Vec::new();
+                    let mut reliablemessagessent: Vec<ReliableClientMessage<N>> = Vec::new();
+                    let mut unreliablemessagessent: Vec<UnreliableClientMessage<N>> = Vec::new();
 
-                    // // Receive message from server
-                    // while let Some(message) = client.receive_message(DefaultChannel::ReliableOrdered) {
-                    //     let message: Result<(ReliableServerMessage, usize), DecodeError>  = bincode::decode_from_slice(&message, bincode::config::standard());
-
-                    //     match message {
-                    //         Ok((servermessage, _)) => {
-                    //             reliablemessages.push(servermessage);
-                    //         },
-                    //         Err(err) => {
-                    //             println!("Error: {:?}", err);
-                    //         }
-                    //     }
-                    // }
-                    receive_message!(client, reliablemessages, ReliableServerMessage<N>, DefaultChannel::ReliableOrdered);
-                    receive_message!(client, unreliablemessages, UnreliableServerMessage<N>, DefaultChannel::Unreliable);
+                    receive_messages!(client, reliablemessagesreceived, ReliableServerMessage<N>, DefaultChannel::ReliableOrdered);
+                    receive_messages!(client, unreliablemessagesreceived, UnreliableServerMessage<N>, DefaultChannel::Unreliable);
                     
-                    // Send message
-                    // client.send_message(DefaultChannel::ReliableOrdered, "client text");
+
+
+
+
+
+                    
+                    send_messages!(client, reliablemessagessent, ReliableServerMessage<N>, DefaultChannel::ReliableOrdered);
+                    send_messages!(client, unreliablemessagessent, UnreliableServerMessage<N>, DefaultChannel::Unreliable);
             
                     // Send packets to server using the transport layer
                     match transport.send_packets(client) {
