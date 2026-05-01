@@ -2,7 +2,8 @@
 macro_rules! join_menu {
     (
         $lang:ident, $joinmenu:lifetime, $state:ident, $address:ident, $port:ident, $height:ident, $screen:ident,
-        $large_button_skin:ident, $small_button_skin:ident, $input_skin:ident
+        $large_button_skin:ident, $small_button_skin:ident, $input_skin:ident,
+        $hash1:expr, $hash2:expr
     ) => {
         clear_background(LIGHTGRAY);
 
@@ -28,14 +29,14 @@ macro_rules! join_menu {
         root_ui().push_skin(&$input_skin);
 
         let address_size = Vec2::new(address_width, join_size.y);
-        InputText::new(hash!())
+        InputText::new($hash1)
         // .label(lang.address)
         .position(($screen - address_size - Vec2::new(0.0, spacing)) / 2.0)
         .size(address_size)
         .ui(&mut root_ui(), $address);
 
         let port_size = Vec2::new(port_width, join_size.y);
-        InputText::new(hash!())
+        InputText::new($hash2)
         // .label(lang.port)
         .position(($screen - address_size + Vec2::new(0.0, spacing)) / 2.0 + Vec2::new(0.0, join_size.y))
         .size(port_size)

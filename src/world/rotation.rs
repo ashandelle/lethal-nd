@@ -15,6 +15,7 @@ pub struct Rotation<T, const N: usize> where [(); N - 1]: Sized {
 //     pub vertical: u8,
 // }
 
+// TODO: use slices to do this faster
 impl<T, const N: usize> Rotation<T, N> where T: Mul<Output = T> + Add<Output = T> + Sub<Output = T> + Sum + CosSin + Zero + Copy, [(); N - 1 ]: Sized {
     pub fn rotate_horizontal(&self, vec: VecN<T, N>) -> VecN<T, N> {
         let mut arr = [T::zero(); N - 1];

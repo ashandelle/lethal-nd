@@ -1,6 +1,6 @@
 use bincode::{Decode, Encode};
 
-use crate::{disconnectreason::DisconnectReason, world::entity::Entity};
+use crate::{disconnectreason::DisconnectReason, world::entity::{Entity, EntityType}};
 // use serde::{Deserialize, Serialize};
 
 pub enum ServerMessageVisibility {
@@ -23,7 +23,10 @@ pub enum ReliableServerMessage<const N: usize> where [(); N - 1]: Sized {
         reason: DisconnectReason,
     },
     EntityCreated {
-        // entity: Entity<N>,
+        id: u64,
+        entitytype: EntityType,
+        position: [f32; N],
+        rotation: ((f32, f32), [[u16; N-1]; N-1], u16),
     },
     EntityDestroyed {
         id: u64,
@@ -34,7 +37,7 @@ pub enum ReliableServerMessage<const N: usize> where [(); N - 1]: Sized {
 pub enum UnreliableServerMessage<const N: usize> where [(); N - 1]: Sized {
     EntityMoved {
         id: u64,
-        // position: ,
-        // rotation: ,
+        position: [f32; N],
+        rotation: ((f32, f32), [[u16; N-1]; N-1], u16),
     },
 }

@@ -117,6 +117,7 @@ fn main() {
                                     ServerMessageVisibility::Except { id: client_id },
                                     ReliableServerMessage::ClientConnected { id: client_id }
                             ));
+                            // TODO: create player entity
                             println!("Client {client_id} connected");
                         }
                         ServerEvent::ClientDisconnected { client_id, reason } => {
@@ -160,7 +161,7 @@ fn main() {
         dt_err = dt_err.max(0.0);
         std::thread::sleep(Duration::from_secs_f64(dt_err));
 
-        println!("Framerate: {}", 1.0 / dt);
+        // println!("Framerate: {}", 1.0 / dt);
 
         prev_time = time;
     }

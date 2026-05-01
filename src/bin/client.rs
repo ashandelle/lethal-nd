@@ -94,7 +94,11 @@ async fn main() {
                 transportoption = None;
                 worldoption = None;
 
-                join_menu!(lang, 'JoinMenu, state, address, port, height, screen, large_button_skin, small_button_skin, input_skin);
+                join_menu!(
+                    lang, 'JoinMenu, state, address, port, height, screen,
+                    large_button_skin, small_button_skin, input_skin,
+                    hash!(), hash!()
+                );
             },
             ClientState::Connecting { address } => {
                 match (clientoption.as_mut(), transportoption.as_mut()) {
@@ -226,7 +230,7 @@ async fn main() {
         dt_err = dt_err.max(0.0);
         std::thread::sleep(Duration::from_secs_f64(dt_err));
 
-        println!("Framerate: {}", 1.0 / dt);
+        // println!("Framerate: {}", 1.0 / dt);
 
         prev_time = time;
     }
