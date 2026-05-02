@@ -138,7 +138,7 @@ async fn main() {
 
                         clientoption = Some(client);
                         transportoption = Some(transport);
-                        worldoption = Some(World::new());
+                        worldoption = Some(World::new_client());
                     },
                 }
             },
@@ -181,24 +181,26 @@ async fn main() {
 
                 let client = clientoption.as_mut().unwrap();
                 let transport = transportoption.as_mut().unwrap();
+                let world = worldoption.as_mut().unwrap();
 
                 client_update!(dt, client, transport, state);
                 
                 if client.is_connected() {
-                    let mut reliablemessagessent: Vec<ReliableClientMessage<N>> = Vec::new();
-                    let mut unreliablemessagessent: Vec<UnreliableClientMessage<N>> = Vec::new();
+                    let reliablemessagessent: Vec<ReliableClientMessage<N>> = Vec::new();
+                    let unreliablemessagessent: Vec<UnreliableClientMessage<N>> = Vec::new();
+
+                    world.client_set_channels(reliablemessagessent, unreliablemessagessent);
 
                     receive_messages!(client, reliablemessagesreceived, ReliableServerMessage<N>, DefaultChannel::ReliableOrdered);
                     receive_messages!(client, unreliablemessagesreceived, UnreliableServerMessage<N>, DefaultChannel::Unreliable);
                     
+                    world.process_reliable_server_messages(reliablemessagesreceived);
+                    world.process_unreliable_server_messages(unreliablemessagesreceived);
+                    world.update(dt);
 
-
-
-
-
-                    
-                    send_messages!(client, reliablemessagessent, ReliableServerMessage<N>, DefaultChannel::ReliableOrdered);
-                    send_messages!(client, unreliablemessagessent, UnreliableServerMessage<N>, DefaultChannel::Unreliable);
+                    let (reliablemessagessent, unreliablemessagessent) = world.client_extract_channels();
+                    send_messages!(client, reliablemessagessent, ReliableClientMessage<N>, DefaultChannel::ReliableOrdered);
+                    send_messages!(client, unreliablemessagessent, UnreliableClientMessage<N>, DefaultChannel::Unreliable);
             
                     // Send packets to server using the transport layer
                     match transport.send_packets(client) {
@@ -208,6 +210,7 @@ async fn main() {
                         },
                     }
 
+                    // TODO: Rendering
                 } else if client.is_disconnected() {
                     state = ClientState::Disconnected { reason: format!("{:?}", client.disconnect_reason()) };
                     printstate(&state);

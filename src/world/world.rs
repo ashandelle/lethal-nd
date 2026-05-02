@@ -1,41 +1,39 @@
 use std::collections::HashMap;
 
-use crate::{server::{ReliableServerMessage, UnreliableServerMessage}, world::entity::Entity};
+use crate::{client::{ReliableClientMessage, UnreliableClientMessage}, server::{ReliableServerMessage, ServerMessageVisibility, UnreliableServerMessage}, world::entity::Entity};
 
 pub struct World<const N: usize> where [(); N - 1]: Sized {
     pub entities: HashMap<u64, Entity<N>>,
+    pub clientserver: ClientServer<N>,
 }
 
-// Client
-impl<const N: usize> World<N> where [(); N - 1]: Sized {
-    // pub fn process_user_input(id: u64, input) {
-
-    // }
-
-    pub fn process_reliable_server_messages(messages: Vec<ReliableServerMessage<N>>) {
-
-    }
-
-    pub fn process_unreliable_server_messages(messages: Vec<UnreliableServerMessage<N>>) {
-
+pub enum ClientServer<const N: usize> where [(); N - 1]: Sized {
+    Client {
+        reliablemessages: Option<Vec<ReliableClientMessage<N>>>,
+        unreliablemessages: Option<Vec<UnreliableClientMessage<N>>>,
+    },
+    Server {
+        reliablemessages: Option<Vec<(ServerMessageVisibility, ReliableServerMessage<N>)>>,
+        unreliablemessages: Option<Vec<(ServerMessageVisibility, UnreliableServerMessage<N>)>>,
     }
 }
 
-// Server
-// impl<const N: usize> World<N> where [(); N - 1]: Sized {
-//     pub fn process_reliable_client_messages(messages: Vec<ReliableClientMessage>) {
-
-//     }
-
-//     pub fn process_unreliable_client_messages(messages: Vec<UnreliableClientMessage>) {
-
-//     }
-// }
-
 impl<const N: usize> World<N> where [(); N - 1]: Sized {
-    pub fn new() -> Self {
+    pub fn new_client() -> Self {
         World {
             entities: HashMap::new(),
+            clientserver: ClientServer::Client { reliablemessages: None, unreliablemessages: None }
         }
+    }
+
+    pub fn new_server() -> Self {
+        World {
+            entities: HashMap::new(),
+            clientserver: ClientServer::Server { reliablemessages: None, unreliablemessages: None }
+        }
+    }
+
+    pub fn update(&mut self, dt: f64) {
+        
     }
 }

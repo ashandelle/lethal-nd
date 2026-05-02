@@ -4,7 +4,7 @@ use bincode::error::DecodeError;
 
 use std::{net::{IpAddr, Ipv4Addr, SocketAddr, UdpSocket}, time::{Duration, SystemTime, UNIX_EPOCH}};
 
-use lethallib::{disconnectreason::DisconnectReason, server::{ReliableServerMessage, ServerMessageVisibility, ServerState, UnreliableServerMessage}, world::world::World};
+use lethallib::{client::{ReliableClientMessage, UnreliableClientMessage}, disconnectreason::DisconnectReason, server::{ReliableServerMessage, ServerMessageVisibility, ServerState, UnreliableServerMessage}, world::world::World};
 
 fn main() {
     const N: usize = 3;
@@ -47,7 +47,7 @@ fn main() {
 
                 serveroption = Some(server);
                 transportoption = Some(transport);
-                worldoption = Some(World::new());
+                worldoption = Some(World::new_client());
 
                 state = ServerState::Connected;//{ connectedstate: ServerConnectedState::Lobby };
             },
@@ -95,6 +95,7 @@ fn main() {
 
                 let server = serveroption.as_mut().unwrap();
                 let transport = transportoption.as_mut().unwrap();
+                let world = worldoption.as_mut().unwrap();
 
                 let delta_time = Duration::from_secs_f64(dt);
                 // Receive new messages and update clients
@@ -106,18 +107,16 @@ fn main() {
                     },
                 }
 
-                let mut reliablemessagessent: Vec<(ServerMessageVisibility, ReliableServerMessage<N>)> = Vec::new();
-                let mut unreliablemessagessent: Vec<(ServerMessageVisibility, UnreliableServerMessage<N>)> = Vec::new();
+                let reliablemessagessent: Vec<(ServerMessageVisibility, ReliableServerMessage<N>)> = Vec::new();
+                let unreliablemessagessent: Vec<(ServerMessageVisibility, UnreliableServerMessage<N>)> = Vec::new();
+
+                world.server_set_channels(reliablemessagessent, unreliablemessagessent);
         
                 // Check for client connections/disconnections
                 while let Some(event) = server.get_event() {
                     match event {
                         ServerEvent::ClientConnected { client_id } => {
-                            reliablemessagessent.push((
-                                    ServerMessageVisibility::Except { id: client_id },
-                                    ReliableServerMessage::ClientConnected { id: client_id }
-                            ));
-                            // TODO: create player entity
+                            world.player_connected(client_id);
                             println!("Client {client_id} connected");
                         }
                         ServerEvent::ClientDisconnected { client_id, reason } => {
@@ -126,26 +125,20 @@ fn main() {
                                 renet::DisconnectReason::DisconnectedByServer => DisconnectReason::Kicked,
                                 _ => DisconnectReason::NetworkError,
                             };
-                            reliablemessagessent.push((
-                                    ServerMessageVisibility::Except { id: client_id },
-                                    ReliableServerMessage::ClientDisconnected { id: client_id, reason: publicreason }
-                            ));
-                            // TODO: remove player entity from world
+                            world.player_disconnected(client_id, publicreason);
                             println!("Client {client_id} disconnected: {reason}");
                         }
                     }
                 }
 
-                receive_messages!(server, reliablemessagesreceived, ReliableServerMessage<N>, DefaultChannel::ReliableOrdered);
-                receive_messages!(server, unreliablemessagesreceived, UnreliableServerMessage<N>, DefaultChannel::Unreliable);
+                receive_messages!(server, reliablemessagesreceived, ReliableClientMessage<N>, DefaultChannel::ReliableOrdered);
+                receive_messages!(server, unreliablemessagesreceived, UnreliableClientMessage<N>, DefaultChannel::Unreliable);
 
+                world.process_reliable_client_messages(reliablemessagesreceived);
+                world.process_unreliable_client_messages(unreliablemessagesreceived);
+                world.update(dt);
 
-
-
-
-
-
-
+                let (reliablemessagessent, unreliablemessagessent) = world.server_extract_channels();
                 send_messages!(server, reliablemessagessent, ReliableServerMessage<N>, DefaultChannel::ReliableOrdered);
                 send_messages!(server, unreliablemessagessent, UnreliableServerMessage<N>, DefaultChannel::Unreliable);
     

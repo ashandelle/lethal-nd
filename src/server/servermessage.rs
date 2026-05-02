@@ -1,6 +1,6 @@
 use bincode::{Decode, Encode};
 
-use crate::{disconnectreason::DisconnectReason, world::entity::{Entity, EntityType}};
+use crate::{disconnectreason::DisconnectReason, world::entity::EntityType};
 // use serde::{Deserialize, Serialize};
 
 pub enum ServerMessageVisibility {
