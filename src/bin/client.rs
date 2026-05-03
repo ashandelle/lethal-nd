@@ -4,11 +4,11 @@ use renet_netcode::{ClientAuthentication, NetcodeClientTransport};
 
 use std::{net::{IpAddr, Ipv4Addr, SocketAddr, UdpSocket}, time::{Duration, SystemTime, UNIX_EPOCH}};
 
-use lethallib::{client::{ClientSettings, ClientState, ReliableClientMessage, UnreliableClientMessage}, disconnected_menu, join_menu, language::Language, main_menu, server::{ReliableServerMessage, UnreliableServerMessage}, skins, styles, world::world::World};
+use lethallib::{client::{ClientSettings, ClientState, ReliableClientMessage, UnreliableClientMessage}, disconnected_menu, join_menu, language::Language, main_menu, server::{ReliableServerMessage, UnreliableServerMessage}, skins, styles, timer::Timer, world::world::World};
 use macroquad::{prelude::*, ui::{Skin, hash, root_ui, widgets::InputText}};
 
 macro_rules! client_update {
-    ($dt:ident, $client:ident, $transport:ident, $state:ident) => {
+    ($dt:ident, $client:ident, $transport:ident, $state:ident, $debugtimer:ident) => {
         let delta_time = Duration::from_secs_f64($dt); // Duration::from_millis(16);
         // Receive new messages and update client
         $client.update(delta_time);
@@ -17,7 +17,7 @@ macro_rules! client_update {
             Err(error) => {
                 $client.disconnect();
                 $state = ClientState::Disconnected { reason: error.to_string() };
-                printstate(&$state);
+                statechanged(&$state, &mut $debugtimer);
             },
         };
     }
@@ -47,6 +47,8 @@ async fn main() {
     let mut transportoption: Option<NetcodeClientTransport> = None;
     let mut worldoption: Option<World<N>> = None;
 
+    let mut debugtimer: Timer = Timer::new(10.0);
+
     loop {
         let time = SystemTime::now().duration_since(UNIX_EPOCH).expect("time should go forward");
         let dt = (time - prev_time).as_secs_f64();
@@ -56,13 +58,15 @@ async fn main() {
         // let ratio = width / height;
         let screen = Vec2::new(width, height);
 
+        debugtimer.advance(dt);
+
         match state {
             ClientState::MainMenu => {
                 clientoption = None;
                 transportoption = None;
                 worldoption = None;
 
-                main_menu!(lang, state, screen, title_skin, large_button_skin);
+                main_menu!(lang, state, debugtimer, screen, title_skin, large_button_skin);
             },
             ClientState::MainSettings => {
                 clientoption = None;
@@ -84,7 +88,7 @@ async fn main() {
                 let back_size = root_ui().calc_size(lang.back);
                 if root_ui().button(Vec2::new(spacing, height - (spacing + back_size.y)), lang.back) {
                     state = ClientState::MainMenu;
-                    printstate(&state);
+                    statechanged(&state, &mut debugtimer);
                 }
 
                 root_ui().pop_skin();
@@ -95,7 +99,7 @@ async fn main() {
                 worldoption = None;
 
                 join_menu!(
-                    lang, 'JoinMenu, state, address, port, height, screen,
+                    lang, 'JoinMenu, state, debugtimer, address, port, height, screen,
                     large_button_skin, small_button_skin, input_skin,
                     hash!(), hash!()
                 );
@@ -103,15 +107,15 @@ async fn main() {
             ClientState::Connecting { address } => {
                 match (clientoption.as_mut(), transportoption.as_mut()) {
                     (Some(client), Some(transport)) => {
-                        client_update!(dt, client, transport, state);
+                        client_update!(dt, client, transport, state, debugtimer);
 
                         if client.is_disconnected()  {
                             state = ClientState::Disconnected { reason: format!("{:?}", client.disconnect_reason()) };
-                            printstate(&state);
+                            statechanged(&state, &mut debugtimer);
                             // break 'Connecting;
                         } else if client.is_connected()  {
                             state = ClientState::Connected;// { connectedstate: ClientConnectedState::Lobby };
-                            printstate(&state);
+                            statechanged(&state, &mut debugtimer);
                             // break 'Connecting;
                         }
                     },
@@ -138,7 +142,7 @@ async fn main() {
 
                         clientoption = Some(client);
                         transportoption = Some(transport);
-                        worldoption = Some(World::new_client());
+                        worldoption = Some(World::new_client(id));
                     },
                 }
             },
@@ -147,7 +151,7 @@ async fn main() {
                 transportoption = None;
                 worldoption = None;
 
-                disconnected_menu!(lang, state, reason, height, screen, large_button_skin);
+                disconnected_menu!(lang, state, debugtimer, reason, height, screen, large_button_skin);
             },
             ClientState::Connected => {
                 macro_rules! receive_messages {
@@ -178,12 +182,11 @@ async fn main() {
                         }
                     };
                 }
-
                 let client = clientoption.as_mut().unwrap();
                 let transport = transportoption.as_mut().unwrap();
                 let world = worldoption.as_mut().unwrap();
 
-                client_update!(dt, client, transport, state);
+                client_update!(dt, client, transport, state, debugtimer);
                 
                 if client.is_connected() {
                     let reliablemessagessent: Vec<ReliableClientMessage<N>> = Vec::new();
@@ -196,7 +199,9 @@ async fn main() {
                     
                     world.process_reliable_server_messages(reliablemessagesreceived);
                     world.process_unreliable_server_messages(unreliablemessagesreceived);
-                    world.update(dt);
+
+                    let input = settings.inputsettings.get_input();
+                    world.client_update(dt, input);
 
                     let (reliablemessagessent, unreliablemessagessent) = world.client_extract_channels();
                     send_messages!(client, reliablemessagessent, ReliableClientMessage<N>, DefaultChannel::ReliableOrdered);
@@ -213,11 +218,11 @@ async fn main() {
                     // TODO: Rendering
                 } else if client.is_disconnected() {
                     state = ClientState::Disconnected { reason: format!("{:?}", client.disconnect_reason()) };
-                    printstate(&state);
+                    statechanged(&state, &mut debugtimer);
                 } else {
                     client.disconnect();
                     state = ClientState::Disconnected { reason: "??".to_string() };
-                    printstate(&state);
+                    statechanged(&state, &mut debugtimer);
                 }
             },
             ClientState::Exit => {
@@ -225,7 +230,15 @@ async fn main() {
             },
         }
 
-        // clear_background(LIGHTGRAY);
+        if debugtimer.is_elapsed() {
+            debugtimer.partial_reset();
+
+            println!("Gamestate: {:?}", state);
+
+            if let Some(world) = &worldoption {
+                println!("World: {:?}", world);
+            }
+        }
 
         next_frame().await;
 
@@ -239,7 +252,9 @@ async fn main() {
     }
 }
 
-fn printstate(state: &ClientState) {
+fn statechanged(state: &ClientState, debugtimer: &mut Timer) {
+    debugtimer.full_reset();
+
     match state {
         ClientState::MainMenu => {
 
@@ -256,17 +271,8 @@ fn printstate(state: &ClientState) {
         ClientState::Disconnected { reason } => {
             println!("Disconnected: {}", reason);
         },
-        ClientState::Connected => {// { connectedstate } => {
+        ClientState::Connected => {
             println!("Connected");
-
-            // match connectedstate {
-            //     ClientConnectedState::Lobby => {
-            //         println!("In lobby");
-            //     },
-            //     ClientConnectedState::InGame => {
-            //         println!("Game started");
-            //     },
-            // }
         },
         ClientState::Exit => {
             println!("Exiting");

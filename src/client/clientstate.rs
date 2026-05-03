@@ -1,7 +1,6 @@
 use std::net::SocketAddr;
 
-// use crate::lobbydata::LobbyData;
-
+#[derive(Debug)]
 pub enum ClientState {
     MainMenu,
     MainSettings,
@@ -18,8 +17,3 @@ pub enum ClientState {
     Connected,
     Exit,
 }
-
-// pub enum ClientConnectedState {
-//     Lobby,
-//     InGame,
-// }

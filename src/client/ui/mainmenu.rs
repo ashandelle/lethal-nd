@@ -1,7 +1,7 @@
 #[macro_export]
 macro_rules! main_menu {
     (
-        $lang:ident, $state:ident, $screen:ident,
+        $lang:ident, $state:ident, $debugtimer:ident, $screen:ident,
         $title_skin:ident, $button_skin:ident
     ) => {
         clear_background(LIGHTGRAY);
@@ -25,12 +25,12 @@ macro_rules! main_menu {
         curr -= exit_size.y / 2.0;
         if root_ui().button(($screen - exit_size) / 2.0 + Vec2::new(0.0,curr), $lang.exit) {
             $state = ClientState::Exit;
-            printstate(&$state);
+            statechanged(&$state, &mut $debugtimer);
         }
         curr -= spacing + (exit_size.y + settings_size.y) / 2.0;
         if root_ui().button(($screen - settings_size) / 2.0 + Vec2::new(0.0,curr), $lang.settings) {
             $state = ClientState::MainSettings;
-            printstate(&$state);
+            statechanged(&$state, &mut $debugtimer);
         }
         curr -= spacing + (settings_size.y + play_size.y) / 2.0;
         if root_ui().button(($screen - play_size) / 2.0 + Vec2::new(0.0,curr), $lang.play) {
@@ -38,7 +38,7 @@ macro_rules! main_menu {
                 address: Default::default(),
                 port: "5000".to_string(),
             };
-            printstate(&$state);
+            statechanged(&$state, &mut $debugtimer);
         }
 
         root_ui().pop_skin();

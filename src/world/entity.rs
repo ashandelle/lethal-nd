@@ -2,6 +2,7 @@ use bincode::{Decode, Encode};
 
 use crate::{Vecf64, Rotationf64};
 
+#[derive(Debug)]
 pub struct Entity<const N: usize> where [(); N - 1]: Sized {
     pub id: u64,
     pub entitytype: EntityType,
@@ -11,7 +12,7 @@ pub struct Entity<const N: usize> where [(); N - 1]: Sized {
     pub rotation: Rotationf64<N>,
 }
 
-#[derive(Encode, Decode, Debug)]
+#[derive(Encode, Decode, Debug, Clone, Copy)]
 pub enum EntityType {
     Player,
 }

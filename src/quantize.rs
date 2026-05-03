@@ -145,7 +145,7 @@ pub fn rotation_to_u16arr<const N: usize>(rot: Rotation<f64, N>) -> ((f32, f32),
 
 pub fn u16arr_to_rotation<const N: usize>(arr: ((f32, f32), [[u16; N-1]; N-1], u16)) -> Rotation<f64, N> {
     let (minmax, arr, vert) = arr;
-    let mat = u16arr_to_matn((minmax, arr));
+    let mat = u16arr_to_matn((minmax, arr)).orthonormalized(1e-8, 128);
     let vert = map(vert as f64, 0.0, u16::MAX as f64, -FRAC_PI_2, FRAC_PI_2);
 
     Rotation { horizontal: mat, vertical: vert }

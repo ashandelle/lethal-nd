@@ -9,6 +9,7 @@ pub mod quantize;
 pub mod language;
 pub mod lobbydata;
 pub mod disconnectreason;
+pub mod timer;
 
 pub mod server;
 pub mod client;

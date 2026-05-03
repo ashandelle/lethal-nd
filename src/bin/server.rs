@@ -4,7 +4,7 @@ use bincode::error::DecodeError;
 
 use std::{net::{IpAddr, Ipv4Addr, SocketAddr, UdpSocket}, time::{Duration, SystemTime, UNIX_EPOCH}};
 
-use lethallib::{client::{ReliableClientMessage, UnreliableClientMessage}, disconnectreason::DisconnectReason, server::{ReliableServerMessage, ServerMessageVisibility, ServerState, UnreliableServerMessage}, world::world::World};
+use lethallib::{client::{ReliableClientMessage, UnreliableClientMessage}, disconnectreason::DisconnectReason, server::{ReliableServerMessage, ServerMessageVisibility, ServerState, UnreliableServerMessage}, timer::Timer, world::world::World};
 
 fn main() {
     const N: usize = 3;
@@ -21,9 +21,13 @@ fn main() {
     let mut transportoption: Option<NetcodeServerTransport> = None;
     let mut worldoption: Option<World<N>> = None;
 
+    let mut debugtimer: Timer = Timer::new(10.0);
+
     loop {
         let time = SystemTime::now().duration_since(UNIX_EPOCH).expect("time should go forward");
         let dt = (time - prev_time).as_secs_f64();
+
+        debugtimer.advance(dt);
 
         match state {
             ServerState::Startup => {
@@ -47,14 +51,15 @@ fn main() {
 
                 serveroption = Some(server);
                 transportoption = Some(transport);
-                worldoption = Some(World::new_client());
+                worldoption = Some(World::new_server());
 
                 state = ServerState::Connected;//{ connectedstate: ServerConnectedState::Lobby };
+                statechanged(&state, &mut debugtimer);
             },
             ServerState::Connected => {
                 macro_rules! receive_messages {
                     ($server:ident, $messages_name:ident, $message_type:ty, $channel_id:expr) => {
-                        let mut $messages_name: Vec<$message_type> = Vec::new();
+                        let mut $messages_name: Vec<(u64, $message_type)> = Vec::new();
 
                         for client_id in $server.clients_id() {
                             // The enum DefaultChannel describe the channels used by the default configuration
@@ -63,7 +68,7 @@ fn main() {
 
                                 match message {
                                     Ok((servermessage, _)) => {
-                                        $messages_name.push(servermessage);
+                                        $messages_name.push((client_id, servermessage));
                                     },
                                     Err(err) => {
                                         println!("Error: {:?}", err);
@@ -136,7 +141,7 @@ fn main() {
 
                 world.process_reliable_client_messages(reliablemessagesreceived);
                 world.process_unreliable_client_messages(unreliablemessagesreceived);
-                world.update(dt);
+                world.server_update(dt);
 
                 let (reliablemessagessent, unreliablemessagessent) = world.server_extract_channels();
                 send_messages!(server, reliablemessagessent, ReliableServerMessage<N>, DefaultChannel::ReliableOrdered);
@@ -150,6 +155,16 @@ fn main() {
             },
         }
 
+        if debugtimer.is_elapsed() {
+            debugtimer.partial_reset();
+
+            println!("Serverstate: {:?}", state);
+
+            if let Some(world) = &worldoption {
+                println!("World: {:?}", world);
+            }
+        }
+
         dt_err += target_dt - dt;
         dt_err = dt_err.max(0.0);
         std::thread::sleep(Duration::from_secs_f64(dt_err));
@@ -157,5 +172,21 @@ fn main() {
         // println!("Framerate: {}", 1.0 / dt);
 
         prev_time = time;
+    }
+}
+
+fn statechanged(state: &ServerState, debugtimer: &mut Timer) {
+    debugtimer.full_reset();
+
+    match state {
+        ServerState::Startup => {
+
+        },
+        ServerState::Connected => {
+            
+        },
+        ServerState::Close => {
+            
+        },
     }
 }
