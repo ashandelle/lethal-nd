@@ -7,7 +7,7 @@ use std::{net::{IpAddr, Ipv4Addr, SocketAddr, UdpSocket}, time::{Duration, Syste
 use lethallib::{client::{ReliableClientMessage, UnreliableClientMessage}, disconnectreason::DisconnectReason, server::{ReliableServerMessage, ServerMessageVisibility, ServerState, UnreliableServerMessage}, timer::Timer, world::world::World};
 
 fn main() {
-    const N: usize = 3;
+    const N: usize = 4;
 
     let target_fps = 60;
     let target_dt = 1.0 / target_fps as f64;
@@ -163,13 +163,13 @@ fn main() {
             if let Some(world) = &worldoption {
                 println!("World: {:?}", world);
             }
+
+            println!("Framerate: {}", 1.0 / dt);
         }
 
         dt_err += target_dt - dt;
         dt_err = dt_err.max(0.0);
         std::thread::sleep(Duration::from_secs_f64(dt_err));
-
-        // println!("Framerate: {}", 1.0 / dt);
 
         prev_time = time;
     }

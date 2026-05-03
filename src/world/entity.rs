@@ -18,19 +18,31 @@ pub enum EntityType {
 }
 
 impl<const N: usize> Entity<N> where [(); N - 1]: Sized {
-    pub fn worldtoplayer(&self, vec: Vecf64<N>) -> Vecf64<N> {
+    pub fn world_to_player_vec(&self, vec: Vecf64<N>) -> Vecf64<N> {
         self.rotation.rotate_horizontal(vec - self.position)
     }
+    pub fn world_to_player_norm(&self, vec: Vecf64<N>) -> Vecf64<N> {
+        self.rotation.rotate_horizontal(vec)
+    }
 
-    pub fn playertoworld(&self, vec: Vecf64<N>) -> Vecf64<N> {
+    pub fn player_to_world_vec(&self, vec: Vecf64<N>) -> Vecf64<N> {
         self.rotation.transpose_rotate_horizontal(vec) + self.position
     }
-
-    pub fn worldtocamera(&self, vec: Vecf64<N>) -> Vecf64<N> {
-        self.rotation.rotate(vec - self.position)
+    pub fn player_to_world_norm(&self, vec: Vecf64<N>) -> Vecf64<N> {
+        self.rotation.transpose_rotate_horizontal(vec)
     }
 
-    pub fn cameratoworld(&self, vec: Vecf64<N>) -> Vecf64<N> {
+    pub fn world_to_camera_vec(&self, vec: Vecf64<N>) -> Vecf64<N> {
+        self.rotation.rotate(vec - self.position)
+    }
+    pub fn world_to_camera_norm(&self, vec: Vecf64<N>) -> Vecf64<N> {
+        self.rotation.rotate(vec)
+    }
+
+    pub fn camera_to_world_vec(&self, vec: Vecf64<N>) -> Vecf64<N> {
         self.rotation.transpose_rotate(vec) + self.position
+    }
+    pub fn camera_to_world_norm(&self, vec: Vecf64<N>) -> Vecf64<N> {
+        self.rotation.transpose_rotate(vec)
     }
 }

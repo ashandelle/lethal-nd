@@ -115,7 +115,7 @@ impl<'a, const N: usize> World<N> where [(); N - 1]: Sized {
 
             if moved {
                 if let Some(player) = self.entities.get_mut(&id) {
-                    (*player).position += movementvector * dt;
+                    (*player).position += player.player_to_world_norm(movementvector) * dt;
 
                     // println!("player moved");
 

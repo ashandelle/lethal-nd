@@ -27,7 +27,7 @@ impl Default for InputSettings<3> {
         Self {
             movementkeys: [
                 (KeyCode::W, KeyCode::S),
-                (KeyCode::A, KeyCode::D)
+                (KeyCode::D, KeyCode::A)
             ],
         }
     }
@@ -38,8 +38,8 @@ impl Default for InputSettings<4> {
         Self {
             movementkeys: [
                 (KeyCode::W, KeyCode::S),
-                (KeyCode::A, KeyCode::D),
-                (KeyCode::Q, KeyCode::E)
+                (KeyCode::D, KeyCode::A),
+                (KeyCode::E, KeyCode::Q)
             ],
         }
     }

@@ -19,3 +19,4 @@ num-traits = "0.2.19"
 bincode = "2.0.1"
 bytes = { version = "1.11.1", features = ["serde"] }
 derive-debug = "0.1.2"
+rayon = "1.12.0"

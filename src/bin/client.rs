@@ -4,7 +4,7 @@ use renet_netcode::{ClientAuthentication, NetcodeClientTransport};
 
 use std::{net::{IpAddr, Ipv4Addr, SocketAddr, UdpSocket}, time::{Duration, SystemTime, UNIX_EPOCH}};
 
-use lethallib::{client::{ClientSettings, ClientState, ReliableClientMessage, UnreliableClientMessage}, disconnected_menu, join_menu, language::Language, main_menu, server::{ReliableServerMessage, UnreliableServerMessage}, skins, styles, timer::Timer, world::world::World};
+use lethallib::{client::{ClientSettings, ClientState, ReliableClientMessage, UnreliableClientMessage, render}, disconnected_menu, join_menu, language::Language, main_menu, server::{ReliableServerMessage, UnreliableServerMessage}, skins, styles, timer::Timer, world::world::World};
 use macroquad::{prelude::*, ui::{Skin, hash, root_ui, widgets::InputText}};
 
 macro_rules! client_update {
@@ -25,7 +25,7 @@ macro_rules! client_update {
 
 #[macroquad::main("Lethal4D")]
 async fn main() {
-    const N: usize = 3;
+    const N: usize = 4;
 
     let target_fps = 60;
     let target_dt = 1.0 / target_fps as f64;
@@ -216,6 +216,13 @@ async fn main() {
                     }
 
                     // TODO: Rendering
+
+                    let mut screen_image = Image::gen_image_color(screen_width() as u16, screen_height() as u16, RED);
+                    let screen_texture = Texture2D::from_image(&screen_image);
+                    render(&settings, &world, &mut screen_image);
+                    screen_texture.update(&screen_image);
+                    draw_texture(&screen_texture, 0.0, 0.0, WHITE);
+
                 } else if client.is_disconnected() {
                     state = ClientState::Disconnected { reason: format!("{:?}", client.disconnect_reason()) };
                     statechanged(&state, &mut debugtimer);
@@ -238,6 +245,8 @@ async fn main() {
             if let Some(world) = &worldoption {
                 println!("World: {:?}", world);
             }
+
+            println!("Framerate: {}", 1.0 / dt);
         }
 
         next_frame().await;
@@ -245,8 +254,6 @@ async fn main() {
         dt_err += target_dt - dt;
         dt_err = dt_err.max(0.0);
         std::thread::sleep(Duration::from_secs_f64(dt_err));
-
-        // println!("Framerate: {}", 1.0 / dt);
 
         prev_time = time;
     }

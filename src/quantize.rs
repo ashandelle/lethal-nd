@@ -62,11 +62,7 @@ use std::f64::consts::FRAC_PI_2;
 
 use mathnd::{matn::MatN, vecn::VecN};
 
-use crate::world::rotation::Rotation;
-
-fn map(val: f64, min1: f64, max1: f64, min2: f64, max2: f64) -> f64 {
-    (max2 - min2) * ((val - min1) / (max1 - min1)) + min2
-}
+use crate::{util::map, world::rotation::Rotation};
 
 pub fn matn_to_f32arr<const N: usize>(mat: MatN<f64, N>) -> [[f32; N]; N] {
     std::array::from_fn(|i|

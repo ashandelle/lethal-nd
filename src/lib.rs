@@ -10,6 +10,7 @@ pub mod language;
 pub mod lobbydata;
 pub mod disconnectreason;
 pub mod timer;
+pub mod util;
 
 pub mod server;
 pub mod client;
