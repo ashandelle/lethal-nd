@@ -30,53 +30,53 @@ pub fn render<const N: usize>(settings: &ClientSettings<N>, world: &World<N>, sc
                 }
             }
 
-            renderobjects.push(RenderObject {
-                object: Object::AABB {
-                    min: VecN::basis(1)*2.0 + VecN::new([-0.5; N]),
-                    max: VecN::basis(1)*2.0 + VecN::new([0.5; N])
-                },
-                color: (1.0, 0.0, 0.0),
-            });
+            // renderobjects.push(RenderObject {
+            //     object: Object::AABB {
+            //         min: VecN::basis(1)*2.0 + VecN::new([-0.5; N]),
+            //         max: VecN::basis(1)*2.0 + VecN::new([0.5; N])
+            //     },
+            //     color: (1.0, 0.0, 0.0),
+            // });
 
-            renderobjects.push(RenderObject {
-                object: Object::AABB {
-                    min: -VecN::basis(1)*2.0 + VecN::new([-0.5; N]),
-                    max: -VecN::basis(1)*2.0 + VecN::new([0.5; N])
-                },
-                color: (0.0, 0.5, 0.5),
-            });
+            // renderobjects.push(RenderObject {
+            //     object: Object::AABB {
+            //         min: -VecN::basis(1)*2.0 + VecN::new([-0.5; N]),
+            //         max: -VecN::basis(1)*2.0 + VecN::new([0.5; N])
+            //     },
+            //     color: (0.0, 0.5, 0.5),
+            // });
 
-            renderobjects.push(RenderObject {
-                object: Object::AABB {
-                    min: VecN::basis(2)*2.0 + VecN::new([-0.5; N]),
-                    max: VecN::basis(2)*2.0 + VecN::new([0.5; N])
-                },
-                color: (0.0, 1.0, 0.0),
-            });
+            // renderobjects.push(RenderObject {
+            //     object: Object::AABB {
+            //         min: VecN::basis(2)*2.0 + VecN::new([-0.5; N]),
+            //         max: VecN::basis(2)*2.0 + VecN::new([0.5; N])
+            //     },
+            //     color: (0.0, 1.0, 0.0),
+            // });
 
-            renderobjects.push(RenderObject {
-                object: Object::AABB {
-                    min: -VecN::basis(2)*2.0 + VecN::new([-0.5; N]),
-                    max: -VecN::basis(2)*2.0 + VecN::new([0.5; N])
-                },
-                color: (0.5, 0.0, 0.5),
-            });
+            // renderobjects.push(RenderObject {
+            //     object: Object::AABB {
+            //         min: -VecN::basis(2)*2.0 + VecN::new([-0.5; N]),
+            //         max: -VecN::basis(2)*2.0 + VecN::new([0.5; N])
+            //     },
+            //     color: (0.5, 0.0, 0.5),
+            // });
 
-            renderobjects.push(RenderObject {
-                object: Object::AABB {
-                    min: VecN::basis(3)*2.0 + VecN::new([-0.5; N]),
-                    max: VecN::basis(3)*2.0 + VecN::new([0.5; N])
-                },
-                color: (0.0, 0.0, 1.0),
-            });
+            // renderobjects.push(RenderObject {
+            //     object: Object::AABB {
+            //         min: VecN::basis(3)*2.0 + VecN::new([-0.5; N]),
+            //         max: VecN::basis(3)*2.0 + VecN::new([0.5; N])
+            //     },
+            //     color: (0.0, 0.0, 1.0),
+            // });
 
-            renderobjects.push(RenderObject {
-                object: Object::AABB {
-                    min: -VecN::basis(3)*2.0 + VecN::new([-0.5; N]),
-                    max: -VecN::basis(3)*2.0 + VecN::new([0.5; N])
-                },
-                color: (0.5, 0.5, 0.0),
-            });
+            // renderobjects.push(RenderObject {
+            //     object: Object::AABB {
+            //         min: -VecN::basis(3)*2.0 + VecN::new([-0.5; N]),
+            //         max: -VecN::basis(3)*2.0 + VecN::new([0.5; N])
+            //     },
+            //     color: (0.5, 0.5, 0.0),
+            // });
 
             // screen_image.get_image_data_mut().par_chunks_mut(width).enumerate().for_each(|(y, strip)| {
             //     for (x, pixel) in strip.iter_mut().enumerate() {
