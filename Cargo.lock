@@ -394,6 +394,8 @@ dependencies = [
  "macroquad",
  "mathnd",
  "num-traits",
+ "rand",
+ "rand_distr",
  "rayon",
  "renet",
  "renet_netcode",
@@ -452,7 +454,7 @@ dependencies = [
 [[package]]
 name = "mathnd"
 version = "0.1.0"
-source = "git+https://github.com/ashandelle/mathnd.git#edfcdac56e9b3ff4d8896e101b82782d1b1fb396"
+source = "git+https://github.com/ashandelle/mathnd.git#ed8105758a650efb23ff656b2fa1ede7af053048"
 dependencies = [
  "num-traits",
  "rand",

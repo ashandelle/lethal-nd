@@ -8,7 +8,7 @@ use lethallib::{client::{ClientSettings, ClientState, ReliableClientMessage, Unr
 use macroquad::{prelude::*, ui::{Skin, hash, root_ui, widgets::InputText}};
 
 macro_rules! client_update {
-    ($dt:ident, $client:ident, $transport:ident, $state:ident, $debugtimer:ident) => {
+    ($dt:ident, $client:ident, $transport:ident, $state:ident, $mousegrab:ident, $debugtimer:ident) => {
         let delta_time = Duration::from_secs_f64($dt); // Duration::from_millis(16);
         // Receive new messages and update client
         $client.update(delta_time);
@@ -17,9 +17,21 @@ macro_rules! client_update {
             Err(error) => {
                 $client.disconnect();
                 $state = ClientState::Disconnected { reason: error.to_string() };
-                statechanged(&$state, &mut $debugtimer);
+                statechanged(&$state, &mut $mousegrab, &mut $debugtimer);
             },
         };
+    }
+}
+
+struct MouseGrabber {
+    grabbed: bool
+}
+
+impl MouseGrabber {
+    pub fn set(&mut self, state: bool) {
+        self.grabbed = state;
+        set_cursor_grab(state);
+        show_mouse(!state);
     }
 }
 
@@ -36,6 +48,8 @@ async fn main() {
     let mut lang = Language::default();
     let mut settings = ClientSettings::default();
     let mut state: ClientState = ClientState::MainMenu;
+
+    let mut mousegrab = MouseGrabber { grabbed: false };
 
     styles!(title_style, large_button_style, small_button_style, input_style);
     skins!(
@@ -66,7 +80,7 @@ async fn main() {
                 transportoption = None;
                 worldoption = None;
 
-                main_menu!(lang, state, debugtimer, screen, title_skin, large_button_skin);
+                main_menu!(lang, state, mousegrab, debugtimer, screen, title_skin, large_button_skin);
             },
             ClientState::MainSettings => {
                 clientoption = None;
@@ -88,7 +102,7 @@ async fn main() {
                 let back_size = root_ui().calc_size(lang.back);
                 if root_ui().button(Vec2::new(spacing, height - (spacing + back_size.y)), lang.back) {
                     state = ClientState::MainMenu;
-                    statechanged(&state, &mut debugtimer);
+                    statechanged(&state, &mut mousegrab, &mut debugtimer);
                 }
 
                 root_ui().pop_skin();
@@ -99,7 +113,7 @@ async fn main() {
                 worldoption = None;
 
                 join_menu!(
-                    lang, 'JoinMenu, state, debugtimer, address, port, height, screen,
+                    lang, 'JoinMenu, state, mousegrab, debugtimer, address, port, height, screen,
                     large_button_skin, small_button_skin, input_skin,
                     hash!(), hash!()
                 );
@@ -107,15 +121,15 @@ async fn main() {
             ClientState::Connecting { address } => {
                 match (clientoption.as_mut(), transportoption.as_mut()) {
                     (Some(client), Some(transport)) => {
-                        client_update!(dt, client, transport, state, debugtimer);
+                        client_update!(dt, client, transport, state, mousegrab, debugtimer);
 
                         if client.is_disconnected()  {
                             state = ClientState::Disconnected { reason: format!("{:?}", client.disconnect_reason()) };
-                            statechanged(&state, &mut debugtimer);
+                            statechanged(&state, &mut mousegrab, &mut debugtimer);
                             // break 'Connecting;
                         } else if client.is_connected()  {
                             state = ClientState::Connected;// { connectedstate: ClientConnectedState::Lobby };
-                            statechanged(&state, &mut debugtimer);
+                            statechanged(&state, &mut mousegrab, &mut debugtimer);
                             // break 'Connecting;
                         }
                     },
@@ -151,7 +165,7 @@ async fn main() {
                 transportoption = None;
                 worldoption = None;
 
-                disconnected_menu!(lang, state, debugtimer, reason, height, screen, large_button_skin);
+                disconnected_menu!(lang, state, mousegrab, debugtimer, reason, height, screen, large_button_skin);
             },
             ClientState::Connected => {
                 macro_rules! receive_messages {
@@ -186,7 +200,7 @@ async fn main() {
                 let transport = transportoption.as_mut().unwrap();
                 let world = worldoption.as_mut().unwrap();
 
-                client_update!(dt, client, transport, state, debugtimer);
+                client_update!(dt, client, transport, state, mousegrab, debugtimer);
                 
                 if client.is_connected() {
                     let reliablemessagessent: Vec<ReliableClientMessage<N>> = Vec::new();
@@ -201,7 +215,9 @@ async fn main() {
                     world.process_unreliable_server_messages(unreliablemessagesreceived);
 
                     let input = settings.inputsettings.get_input();
-                    world.client_update(dt, input);
+                    if is_mouse_button_down(MouseButton::Left) {mousegrab.set(true);}
+                    if input.menu {mousegrab.set(false);}
+                    world.client_update(dt, input, mousegrab.grabbed);
 
                     let (reliablemessagessent, unreliablemessagessent) = world.client_extract_channels();
                     send_messages!(client, reliablemessagessent, ReliableClientMessage<N>, DefaultChannel::ReliableOrdered);
@@ -215,8 +231,6 @@ async fn main() {
                         },
                     }
 
-                    // TODO: Rendering
-
                     let mut screen_image = Image::gen_image_color(screen_width() as u16, screen_height() as u16, RED);
                     let screen_texture = Texture2D::from_image(&screen_image);
                     render(&settings, &world, &mut screen_image);
@@ -225,11 +239,11 @@ async fn main() {
 
                 } else if client.is_disconnected() {
                     state = ClientState::Disconnected { reason: format!("{:?}", client.disconnect_reason()) };
-                    statechanged(&state, &mut debugtimer);
+                    statechanged(&state, &mut mousegrab, &mut debugtimer);
                 } else {
                     client.disconnect();
                     state = ClientState::Disconnected { reason: "??".to_string() };
-                    statechanged(&state, &mut debugtimer);
+                    statechanged(&state, &mut mousegrab, &mut debugtimer);
                 }
             },
             ClientState::Exit => {
@@ -259,8 +273,9 @@ async fn main() {
     }
 }
 
-fn statechanged(state: &ClientState, debugtimer: &mut Timer) {
+fn statechanged(state: &ClientState, mousegrab: &mut MouseGrabber, debugtimer: &mut Timer) {
     debugtimer.full_reset();
+    mousegrab.set(false);
 
     match state {
         ClientState::MainMenu => {
@@ -280,6 +295,7 @@ fn statechanged(state: &ClientState, debugtimer: &mut Timer) {
         },
         ClientState::Connected => {
             println!("Connected");
+            mousegrab.set(true);
         },
         ClientState::Exit => {
             println!("Exiting");

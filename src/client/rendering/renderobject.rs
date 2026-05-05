@@ -1,6 +1,11 @@
 use crate::Vecf64;
 
-pub enum RenderObject<const N: usize> {
+pub struct RenderObject<const N: usize> {
+    pub object: Object<N>,
+    pub color: (f64, f64, f64),
+}
+
+pub enum Object<const N: usize> {
     // Sphere,
     AABB {
         min: Vecf64<N>,

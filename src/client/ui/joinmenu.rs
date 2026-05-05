@@ -1,7 +1,7 @@
 #[macro_export]
 macro_rules! join_menu {
     (
-        $lang:ident, $joinmenu:lifetime, $state:ident, $debugtimer:ident, $address:ident, $port:ident, $height:ident, $screen:ident,
+        $lang:ident, $joinmenu:lifetime, $state:ident, $mousegrab:ident, $debugtimer:ident, $address:ident, $port:ident, $height:ident, $screen:ident,
         $large_button_skin:ident, $small_button_skin:ident, $input_skin:ident,
         $hash1:expr, $hash2:expr
     ) => {
@@ -16,7 +16,7 @@ macro_rules! join_menu {
         let back_size = root_ui().calc_size($lang.back);
         if root_ui().button(Vec2::new(spacing, $height - (spacing + back_size.y)), $lang.back) {
             $state = ClientState::MainMenu;
-            statechanged(&$state, &mut $debugtimer);
+            statechanged(&$state, &mut $mousegrab, &mut $debugtimer);
             break $joinmenu;
         }
 
@@ -53,7 +53,7 @@ macro_rules! join_menu {
                     $state = ClientState::Disconnected {
                         reason: err.to_string()
                     };
-                    statechanged(&$state, &mut $debugtimer);
+                    statechanged(&$state, &mut $mousegrab, &mut $debugtimer);
                     break $joinmenu;
                 },
             };
@@ -63,7 +63,7 @@ macro_rules! join_menu {
                     $state = ClientState::Disconnected {
                         reason: err.to_string()
                     };
-                    statechanged(&$state, &mut $debugtimer);
+                    statechanged(&$state, &mut $mousegrab, &mut $debugtimer);
                     break $joinmenu;
                 },
             };
@@ -71,7 +71,7 @@ macro_rules! join_menu {
             let socket: SocketAddr = SocketAddr::new(IpAddr::V4(addr), pt);
 
             $state = ClientState::Connecting { address: socket };
-            statechanged(&$state, &mut $debugtimer);
+            statechanged(&$state, &mut $mousegrab, &mut $debugtimer);
         }
 
         root_ui().pop_skin();

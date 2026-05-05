@@ -27,7 +27,12 @@ pub type Rotationf64<const N: usize> = Rotation<f64, N>;
 
 #[cfg(test)]
 mod tests {
+    use mathnd::{matn::MatN, vecn::VecN};
     // use super::*;
+    use rand::prelude::*;
+    use rand_distr::StandardNormal;
+
+    use crate::world::rotation::Rotation;
 
     // #[test]
     // fn it_works() {
@@ -35,10 +40,40 @@ mod tests {
     //     assert_eq!(result, 4);
     // }
 
-    // #[test]
-    // fn test_vecn() {
-    //     let vec1: Vec4<f64> = Vec4::<f64>::new([1.0, 2.0, 3.0, 4.0]);
-    //     let vec2: Vec4<f64> = Vec4::<f64>::new([-4.0, -3.0, -2.0, -1.0]);
-    //     assert_eq!(vec1 + vec2, Vec4::<f64>::new([-3.0, -1.0, 1.0, 3.0]));
-    // }
+    #[test]
+    fn test_rotation() {
+        let mut rng = rand::rng();
+
+        for _n in 0..100 {
+            let rot: Rotation<f64, 3> = Rotation {
+                horizontal: MatN {
+                    e: std::array::from_fn(|_i|
+                        VecN::new(std::array::from_fn(|_j| rng.sample(StandardNormal)))
+                    ),
+                }.orthonormalized(1e-8, 128),
+                vertical: rng.sample(StandardNormal),
+            };
+            
+            let mut vec: VecN<f64, 3> = VecN::new(std::array::from_fn(|_i| rng.sample(StandardNormal)));
+            vec.e[0] = 0.0;
+            vec.normalize();
+
+            let vec1 = rot.rotate(vec);
+            let vec2 = rot.rotate_horizontal(vec);
+
+            assert!((vec.length() - vec1.length()).abs() < 1e-8);
+            assert!((vec.length() - vec2.length()).abs() < 1e-8);
+
+            // println!("{}\t{}\t{}\t{}\t{}", vec1.dot(vec2), rot.vertical, rot.vertical.cos(), vec1.length(), vec2.length());
+
+            // println!("{:?} {:?}", rot, vec);
+
+            // assert!((vec1.dot(vec2) - rot.vertical.cos()).abs() < 1e-8);
+
+            assert!((vec - rot.transpose_rotate(vec1)).length_sqr() < 1e-8);
+            assert!((vec - rot.transpose_rotate_horizontal(vec2)).length_sqr() < 1e-8);
+        }
+
+        // assert!(false);
+    }
 }
