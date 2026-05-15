@@ -1,10 +1,11 @@
+use mathnd::vecn::VecN;
 use renet::{ConnectionConfig, DefaultChannel, RenetServer, ServerEvent};
 use renet_netcode::{NetcodeServerTransport, ServerAuthentication, ServerConfig};
 use bincode::error::DecodeError;
 
 use std::{net::{IpAddr, Ipv4Addr, SocketAddr, UdpSocket}, time::{Duration, SystemTime, UNIX_EPOCH}};
 
-use lethallib::{client::{ReliableClientMessage, UnreliableClientMessage}, disconnectreason::DisconnectReason, server::{ReliableServerMessage, ServerMessageVisibility, ServerState, UnreliableServerMessage}, timer::Timer, world::world::World};
+use lethallib::{client::{Object, ReliableClientMessage, RenderObject, UnreliableClientMessage}, disconnectreason::DisconnectReason, server::{ReliableServerMessage, ServerMessageVisibility, ServerState, UnreliableServerMessage}, timer::Timer, world::{structure::Structure, world::World}};
 
 fn main() {
     const N: usize = 4;
@@ -52,6 +53,34 @@ fn main() {
                 serveroption = Some(server);
                 transportoption = Some(transport);
                 worldoption = Some(World::new_server());
+
+                // Sample structures
+                if let Some(ref mut world) = worldoption {
+                    let basis = [1,1,2,2,3,3];
+                    let mult = [2.0,-2.0,2.0,-2.0,2.0,-2.0];
+                    let color = [
+                            (1.0,0.0,0.0),
+                            (0.0,0.5,0.5),
+                            (0.0,1.0,0.0),
+                            (0.5,0.0,0.5),
+                            (0.0,0.0,1.0),
+                            (0.5,0.5,0.0),
+                        ];
+                    for i in 0..basis.len() {
+                        world.structures.insert(
+                            i as u64,
+                            Structure {
+                                render: RenderObject {
+                                    object: Object::AABB {
+                                        min: VecN::basis(basis[i])*mult[i] + VecN::new([-0.5; N]),
+                                        max: VecN::basis(basis[i])*mult[i] + VecN::new([0.5; N])
+                                    },
+                                    color: color[i],
+                                },
+                            }
+                        );
+                    }
+                }
 
                 state = ServerState::Connected;//{ connectedstate: ServerConnectedState::Lobby };
                 statechanged(&state, &mut debugtimer);

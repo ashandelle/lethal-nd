@@ -3,10 +3,13 @@ use std::collections::{HashMap, HashSet};
 use derive_debug::Dbg;
 
 use crate::{client::{ReliableClientMessage, UnreliableClientMessage}, server::{ReliableServerMessage, ServerMessageVisibility, UnreliableServerMessage}, world::entity::Entity};
+use crate::world::structure::Structure;
 
 #[derive(Debug)]
 pub struct World<const N: usize> where [(); N - 1]: Sized {
     pub entities: HashMap<u64, Entity<N>>,
+    // pub terrain: ,
+    pub structures: HashMap<u64, Structure<N>>,
     pub players: HashSet<u64>,
     pub clientserver: ClientServer<N>,
 }
@@ -31,6 +34,7 @@ impl<const N: usize> World<N> where [(); N - 1]: Sized {
     pub fn new_client(id: u64) -> Self {
         World {
             entities: HashMap::new(),
+            structures: HashMap::new(),
             players: HashSet::new(),
             clientserver: ClientServer::Client { id, reliablemessages: None, unreliablemessages: None }
         }
@@ -39,6 +43,7 @@ impl<const N: usize> World<N> where [(); N - 1]: Sized {
     pub fn new_server() -> Self {
         World {
             entities: HashMap::new(),
+            structures: HashMap::new(),
             players: HashSet::new(),
             clientserver: ClientServer::Server { reliablemessages: None, unreliablemessages: None }
         }

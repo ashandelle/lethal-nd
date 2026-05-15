@@ -70,6 +70,16 @@ impl<'a, const N: usize> World<N> where [(); N - 1]: Sized {
                 ));
             }
 
+            for (structid, structure) in &self.structures {
+                reliablemessages.push((
+                    ServerMessageVisibility::Only{ id },
+                    ReliableServerMessage::StructureCreated {
+                        id: *structid,
+                        structure: *structure,
+                    }
+                ));
+            }
+
             for (entityid, Entity { id: _, entitytype, position, rotation }) in &self.entities {
                 reliablemessages.push((
                     ServerMessageVisibility::Only{ id },

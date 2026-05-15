@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use bincode::{Decode, Encode};
 
-use crate::{disconnectreason::DisconnectReason, world::entity::EntityType};
+use crate::{disconnectreason::DisconnectReason, world::{entity::EntityType, structure::Structure}};
 // use serde::{Deserialize, Serialize};
 
 pub enum ServerMessageVisibility {
@@ -26,6 +26,13 @@ pub enum ReliableServerMessage<const N: usize> where [(); N - 1]: Sized {
     ClientDisconnected {
         id: u64,
         reason: DisconnectReason,
+    },
+    StructureCreated {
+        id: u64,
+        structure: Structure<N>,
+    },
+    StructureDestroyed {
+        id: u64,
     },
     EntityCreated {
         id: u64,

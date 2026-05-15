@@ -54,6 +54,12 @@ impl<'a, const N: usize> World<N> where [(); N - 1]: Sized {
                         self.players.remove(&id);
                         self.entities.remove(&id);
                     },
+                    ReliableServerMessage::StructureCreated { id, structure } => {
+                        self.structures.insert(id, structure);
+                    },
+                    ReliableServerMessage::StructureDestroyed { id } => {
+                        self.structures.remove(&id);
+                    },
                     ReliableServerMessage::EntityCreated { id, entitytype, position, rotation } => {
                         self.entities.insert(id, Entity {
                             id,
@@ -64,7 +70,7 @@ impl<'a, const N: usize> World<N> where [(); N - 1]: Sized {
                     },
                     ReliableServerMessage::EntityDestroyed { id } => {
                         self.entities.remove(&id);
-                    }
+                    },
                 }
             }
         } else {
